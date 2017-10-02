@@ -43,6 +43,7 @@ var (
 	contents           cli.StringSlice
 
 	queryCh = make(chan *msg.QueryResult)
+	reqIDs  = map[string]string{}
 )
 
 func init() {
@@ -347,7 +348,7 @@ Complete:           {{if .}}{{.Complete}}
 {{- end}}
 
 {{define "QueryResult" -}}
-{{- if url .Url}}URL:                {{url .Url}}
+{{- if url .RequestId}}URL/Content:        {{url .RequestId}}
 {{end}}
 {{- if .RequestId}}Request ID:         {{.RequestId}}
 {{end}}
@@ -359,21 +360,12 @@ Requested Datasets: {{range .RequestDataset}}{{dataset .}} {{end}}
 {{- end}}`
 
 var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.FuncMap{
-	"url": func(i string) string {
-		if i == "" {
-			return ""
+	"url": func(reqID string) string {
+		u, ok := reqIDs[reqID]
+		if !ok {
+			return "<UNKNOWN>"
 		}
-
-		u, err := url.Parse(i)
-		if err != nil {
-			return err.Error()
-		}
-
-		if u.Host == "" {
-			return ""
-		}
-
-		return u.String()
+		return u
 	},
 	"dataset": func(i uint32) string {
 		return msg.DataSetType(i).String()
@@ -405,17 +397,34 @@ func queryWait(ctx context.Context, traceID string, replies []*msg.QueryReply) e
 		fmt.Fprintf(w, "Trace ID:\t%s\n", traceID)
 	}
 
-	reqIDs := map[string]string{}
 	for i, reply := range replies {
 		var u string
 		if i < len(queryReq.Url) {
 			u = queryReq.Url[i]
 		} else if j := i - len(queryReq.Url); j >= 0 && j < len(queryReq.Content) {
 			u = queryReq.Content[j].Url
+
+			p, err := url.Parse(u)
+			if err != nil {
+				return err
+			}
+
+			if p.Host == "" {
+				c := queryReq.Content[j].Content
+				l := len(c)
+				if l > 23 {
+					u = c[:23] + "..."
+				} else if l > 0 {
+					u = c
+				} else {
+					u = "<CONTENT_REQUEST>"
+				}
+			}
 		} else {
 			fmt.Fprintf(os.Stderr, "got unexpected reply: %d => %#v\n", i, reply)
 			continue
 		}
+
 		reqIDs[reply.RequestId] = u
 		fmt.Fprintf(w, "%s:\t%s\n", u, reply.RequestId)
 	}
@@ -432,7 +441,7 @@ func queryWait(ctx context.Context, traceID string, replies []*msg.QueryReply) e
 	}
 
 	if queryPoll {
-		return pollReqIDs(ctx, reqIDs)
+		return pollReqIDs(ctx)
 	}
 
 	return nil

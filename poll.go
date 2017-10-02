@@ -18,8 +18,10 @@ import (
 	"zvelo.io/msg"
 )
 
-var pollOnce bool
-var pollRequestIDs []string
+var (
+	pollOnce       bool
+	pollRequestIDs []string
+)
 
 func init() {
 	cmd := cli.Command{
@@ -48,6 +50,12 @@ func setupPoll(c *cli.Context) error {
 		return errors.New("at least one request_id is required")
 	}
 
+	for _, reqID := range pollRequestIDs {
+		if reqID != "" {
+			reqIDs[reqID] = ""
+		}
+	}
+
 	return nil
 }
 
@@ -55,19 +63,10 @@ func poll(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	reqIDs := map[string]string{}
-	for _, reqID := range pollRequestIDs {
-		reqIDs[reqID] = ""
-	}
-
-	if pollOnce {
-		return pollReqIDsOnce(ctx, reqIDs)
-	}
-
-	return pollReqIDs(ctx, reqIDs)
+	return pollReqIDs(ctx)
 }
 
-func pollReqIDs(ctx context.Context, reqIDs map[string]string) error {
+func pollReqIDs(ctx context.Context) error {
 	polling := map[string]string{}
 	for reqID, url := range reqIDs {
 		polling[reqID] = url
@@ -80,24 +79,20 @@ func pollReqIDs(ctx context.Context, reqIDs map[string]string) error {
 		case <-time.After(pollInterval):
 		}
 
-		if err := pollReqIDsOnce(ctx, polling); err != nil {
-			return err
-		}
-	}
+		for reqID, url := range polling {
+			complete, err := pollReqID(ctx, reqID, url)
 
-	return nil
-}
+			if err != nil {
+				return err
+			}
 
-func pollReqIDsOnce(ctx context.Context, reqIDs map[string]string) error {
-	for reqID, url := range reqIDs {
-		complete, err := pollReqID(ctx, reqID, url)
-
-		if err != nil {
-			return err
+			if complete {
+				delete(polling, reqID)
+			}
 		}
 
-		if complete {
-			delete(reqIDs, reqID)
+		if pollOnce {
+			break
 		}
 	}
 
