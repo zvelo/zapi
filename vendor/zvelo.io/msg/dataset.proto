@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package zvelo.msg;
+
+option go_package = "zvelo.io/msg";
+
+enum DataSetType {
+  CATEGORIZATION = 0;
+  // 1 is reserved
+  // 2 is reserved
+  // 3 is reserved
+  MALICIOUS      = 4;
+  ECHO           = 5; // for internal zvelo use only
+  // 6 is reserved
+}
+
+// DataSet
+message DataSet {
+  // Categorization
+  message Categorization {
+    reserved 1;
+    repeated uint32 value = 2;
+  }
+
+  // Malicious
+  message Malicious {
+    enum Verdict {
+      VERDICT_UNKNOWN   = 0;
+      VERDICT_CLEAN     = 1;
+      VERDICT_MALICIOUS = 2;
+    }
+
+    reserved 1;
+    reserved 2;
+    reserved 3;
+    uint32 category = 4;
+    uint32 verdict  = 5;
+  }
+
+  // Echo
+  message Echo {
+    string url = 1;
+  }
+
+  Categorization categorization = 1;
+  reserved 2;
+  reserved 3;
+  reserved 4;
+  Malicious      malicious      = 5;
+  Echo           echo           = 6;
+  reserved 7;
+}

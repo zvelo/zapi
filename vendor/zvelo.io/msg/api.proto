@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+// zveloAPI
+package zvelo.msg;
+
+option go_package = "zvelo.io/msg";
+
+import "zvelo/msg/query.proto";
+import "google/api/annotations.proto";
+
+service API {
+  // Create new query
+  rpc QueryV1(QueryRequests) returns (QueryReplies) {
+    option (google.api.http) = {
+      post: "/v1/query"
+      body: "*"
+    };
+  }
+
+  // Results of active or unexpired query
+  rpc QueryResultV1(QueryPollRequest) returns (QueryResult) {
+    option (google.api.http) = {
+      get: "/v1/query/{request_id}"
+    };
+  }
+}

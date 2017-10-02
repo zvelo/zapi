@@ -1,0 +1,54 @@
+2016-12-14  Steven Bogacz <sbogacz@zvelo.com>
+
+  * Start feature "Update external messaging to allow fine grained multi query responses"
+  https://www.pivotaltracker.com/story/show/136153393
+  https://github.com/zvelo/msg/pull/19
+  https://github.com/zvelo/msg/pull/23
+
+2016-10-26  Bob Uhl <buhl@zvelo.com>
+
+  * Start feature "Add stream service &amp; calls to msg"
+  https://www.pivotaltracker.com/story/show/133195821
+  https://github.com/zvelo/msg/pull/18
+
+2016-09-01  RJ Nanjegowda <rnanjegowda@zvelo.com>
+
+  * Start feature "update MD dataset to remove  signature field"
+  https://www.pivotaltracker.com/story/show/129615811
+  https://github.com/zvelo/msg/pull/15
+
+2016-07-05  Steven Bogacz <sbogacz@zvelo.com>
+
+  * Start feature "Add redirect codes to status message"
+  https://www.pivotaltracker.com/story/show/124857231
+  https://github.com/zvelo/msg/pull/11
+
+2016-06-24  Michael Robinson <mrobinson@zvelo.com>
+
+  * Start feature "add content query content-type to msg"
+  https://www.pivotaltracker.com/story/show/122225855
+  https://github.com/zvelo/msg/pull/10
+
+2016-05-13  Bob Uhl <buhl@zvelo.com>
+
+  * Start feature "Create messages for zNouns &amp; zSent datasets"
+  https://www.pivotaltracker.com/story/show/119385737
+  https://github.com/zvelo/msg/pull/6
+
+2016-04-07  Bob Uhl <buhl@zvelo.com>
+
+  * Start feature "Add bulk categorizations to zvelo.io/msg"
+  https://www.pivotaltracker.com/story/show/117147861
+  https://github.com/zvelo/msg/pull/5
+
+2016-04-04  Joshua Rubin <jrubin@zvelo.com>
+
+  * Start feature "Update Status message"
+  https://www.pivotaltracker.com/story/show/116933673
+  https://github.com/zvelo/msg/pull/4
+
+2016-03-16  RJ Nanjegowda <rnanjegowda@zvelo.com>
+
+  * Start feature "Modify DS for Malicious"
+  https://www.pivotaltracker.com/story/show/115820433
+  https://github.com/zvelo/msg/pull/1
