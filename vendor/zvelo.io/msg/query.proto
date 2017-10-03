@@ -38,7 +38,9 @@ message QueryResult {
   option (gogoproto.unmarshaler) = false;
   option (gogoproto.sizer) = false;
 
-  reserved 1;
+  // Request ID for tracking requests
+  string request_id = 1;
+
   reserved 2;
   reserved 3;
   reserved 4;
@@ -46,8 +48,9 @@ message QueryResult {
   reserved 6;
 
   DataSet response_dataset        = 7;
-  string url                      = 8;
-  repeated uint32 request_dataset = 9;
+
+  reserved 8;
+  reserved 9;
 
   QueryStatus query_status = 10;
 };

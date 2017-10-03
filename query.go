@@ -350,11 +350,6 @@ Complete:           {{if .}}{{.Complete}}
 {{define "QueryResult" -}}
 {{- if url .RequestId}}URL/Content:        {{url .RequestId}}
 {{end}}
-{{- if .RequestId}}Request ID:         {{.RequestId}}
-{{end}}
-{{- if .RequestDataset -}}
-Requested Datasets: {{range .RequestDataset}}{{dataset .}} {{end}}
-{{end}}
 {{- if .ResponseDataset}}{{template "DataSet" .ResponseDataset}}{{end}}
 {{- template "QueryStatus" .QueryStatus}}
 {{- end}}`

@@ -214,18 +214,12 @@
         "query_status": {
           "$ref": "#/definitions/msgQueryStatus"
         },
-        "request_dataset": {
-          "type": "array",
-          "items": {
-            "type": "integer",
-            "format": "int64"
-          }
+        "request_id": {
+          "type": "string",
+          "title": "Request ID for tracking requests"
         },
         "response_dataset": {
           "$ref": "#/definitions/msgDataSet"
-        },
-        "url": {
-          "type": "string"
         }
       }
     },

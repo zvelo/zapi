@@ -45,7 +45,7 @@ var (
 	tlsInsecureSkipVerify  bool
 	mockNoCredentials      bool
 
-	version         = "v0.0.2"
+	version         = "v1.0.0"
 	app             = cli.NewApp()
 	defaultScopes   = strings.Fields(zapi.DefaultScopes)
 	defaultDatasets = []string{msg.CATEGORIZATION.String()}
