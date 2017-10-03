@@ -350,6 +350,8 @@ Complete:           {{if .}}{{.Complete}}
 {{define "QueryResult" -}}
 {{- if url .RequestId}}URL/Content:        {{url .RequestId}}
 {{end}}
+{{- if .RequestId}}Request ID:         {{.RequestId}}
+{{end}}
 {{- if .ResponseDataset}}{{template "DataSet" .ResponseDataset}}{{end}}
 {{- template "QueryStatus" .QueryStatus}}
 {{- end}}`
@@ -361,9 +363,6 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 			return "<UNKNOWN>"
 		}
 		return u
-	},
-	"dataset": func(i uint32) string {
-		return msg.DataSetType(i).String()
 	},
 	"category": func(i uint32) string {
 		return fmt.Sprintf("%s(%d)", msg.Category(i), i)
