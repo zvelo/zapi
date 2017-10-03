@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -40,10 +42,12 @@ var tokenHTMLTpl = template.Must(template.New("token").Parse(tokenHTMLTplStr))
 type userAccreditor struct {
 	sync.Mutex
 	oauth2.Config
-	addr  string
-	open  bool
-	ctx   context.Context
-	debug bool
+	addr               string
+	open               bool
+	authCodeURLHandler AuthCodeURLHandler
+	ctx                context.Context
+	debug              io.Writer
+	ignoreErrors       bool
 }
 
 var _ oauth2.TokenSource = (*userAccreditor)(nil)
@@ -63,6 +67,15 @@ func defaultScopes() []string {
 // An Option is used to configure the oauth2 user credential flow.
 type Option func(*userAccreditor)
 
+// WithIgnoreErrors returns an Option that prevents redirect uris from the
+// server containing errors from stopping the listener server. This should only
+// be used for testing.
+func WithIgnoreErrors() Option {
+	return func(a *userAccreditor) {
+		a.ignoreErrors = true
+	}
+}
+
 // WithRedirectURL returns an Option that specifies the RedirectURL that will be
 // used by the oauth2 flow. The client must be configured on the oauth2 server
 // to permit this value or else the flow will fail.
@@ -73,6 +86,46 @@ func WithRedirectURL(val string) Option {
 
 	return func(a *userAccreditor) {
 		a.Config.RedirectURL = val
+	}
+}
+
+// WithEndpoint returns an Option that specifies the oauth2 endpoint that will
+// be used to get tokens. By default it uses zapi.Endpoint.
+func WithEndpoint(val oauth2.Endpoint) Option {
+	if val == (oauth2.Endpoint{}) {
+		val = zapi.Endpoint
+	}
+
+	return func(a *userAccreditor) {
+		a.Config.Endpoint = val
+	}
+}
+
+// An AuthCodeURLHandler is asynchronously passed the AuthCodeURL when Token()
+// is called
+type AuthCodeURLHandler interface {
+	AuthCodeURL(string)
+}
+
+// The AuthCodeURLHandlerFunc type is an adapter to allow the use of ordinary
+// functions as AuthCodeURLHandlers. If f is a function with the appropriate
+// signature, AuthCodeURLHandlerFunc(f) is a Handler that calls f.
+type AuthCodeURLHandlerFunc func(string)
+
+// AuthCodeURL calls f(u)
+func (f AuthCodeURLHandlerFunc) AuthCodeURL(u string) {
+	f(u)
+}
+
+var _ AuthCodeURLHandler = (*AuthCodeURLHandlerFunc)(nil)
+
+// WithAuthCodeURLHandler returns an Option that will cause the passed in
+// handler to be called in a new goroutine with the value of the URL that should
+// be opened. This allows programmatic user authentication (e.g. without
+// interacting with the browser). Overrides WithoutOpen().
+func WithAuthCodeURLHandler(val AuthCodeURLHandler) Option {
+	return func(a *userAccreditor) {
+		a.authCodeURLHandler = val
 	}
 }
 
@@ -111,10 +164,14 @@ func WithoutOpen() Option {
 }
 
 // WithDebug returns an option that causes incoming http.Requests to the
-// callback server to be logged to stderr.
-func WithDebug() Option {
+// callback server to be logged to the writer.
+func WithDebug(val io.Writer) Option {
+	if val == nil {
+		val = ioutil.Discard
+	}
+
 	return func(a *userAccreditor) {
-		a.debug = true
+		a.debug = val
 	}
 }
 
@@ -127,9 +184,10 @@ func defaults(ctx context.Context, clientID, clientSecret string) *userAccredito
 			RedirectURL:  DefaultRedirectURL,
 			Scopes:       defaultScopes(),
 		},
-		addr: DefaultCallbackAddr,
-		ctx:  ctx,
-		open: true,
+		addr:  DefaultCallbackAddr,
+		ctx:   ctx,
+		open:  true,
+		debug: ioutil.Discard,
 	}
 }
 
@@ -151,7 +209,9 @@ func (a *userAccreditor) Token() (*oauth2.Token, error) {
 
 	u := a.AuthCodeURL(state)
 
-	if a.open {
+	if a.authCodeURLHandler != nil {
+		go a.authCodeURLHandler.AuthCodeURL(u)
+	} else if a.open {
 		fmt.Fprintf(os.Stderr, "opening in browser: %s\n", u)
 		if err := browser.OpenURL(u); err != nil {
 			return nil, err
@@ -160,13 +220,10 @@ func (a *userAccreditor) Token() (*oauth2.Token, error) {
 		fmt.Fprintf(os.Stderr, "open this url in your browser: %s\n", u)
 	}
 
-	ctx, cancel := context.WithCancel(a.ctx)
-	defer cancel()
-
 	ch := make(chan result)
 
 	mux := http.NewServeMux()
-	mux.Handle("/", a.handler(ctx, state, ch))
+	mux.Handle("/", a.handler(state, ch))
 
 	server := http.Server{
 		Addr:    a.addr,
@@ -179,13 +236,12 @@ func (a *userAccreditor) Token() (*oauth2.Token, error) {
 		}
 	}()
 
-	defer func() { _ = server.Shutdown(ctx) }()
+	defer func() { _ = server.Shutdown(a.ctx) }()
 
 	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	case <-a.ctx.Done():
+		return nil, a.ctx.Err()
 	case res := <-ch:
-		cancel()
 		return res.token, res.err
 	}
 }
@@ -195,11 +251,9 @@ type result struct {
 	err   error
 }
 
-func (a *userAccreditor) handler(ctx context.Context, state string, ch chan<- result) http.Handler {
+func (a *userAccreditor) handler(state string, ch chan<- result) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if a.debug {
-			zvelo.DebugRequest(r)
-		}
+		zvelo.DebugRequest(a.debug, r)
 
 		if state == "" || state != r.URL.Query().Get("state") {
 			// don't return the result on the channel, this can happen when the
@@ -208,31 +262,43 @@ func (a *userAccreditor) handler(ctx context.Context, state string, ch chan<- re
 			return
 		}
 
+		var queryErr error
 		var res result
-		defer func() { ch <- res }()
+
+		defer func() {
+			if res.err == nil && queryErr != nil {
+				if a.ignoreErrors {
+					return
+				}
+
+				res.err = queryErr
+			}
+
+			ch <- res
+		}()
 
 		errCode := r.URL.Query().Get("error")
 
 		if errCode != "" {
-			res.err = errors.Errorf("%s: %s", errCode, r.URL.Query().Get("error_description"))
+			queryErr = errors.Errorf("%s: %s", errCode, r.URL.Query().Get("error_description"))
 		}
 
 		switch errCode {
 		case "access_denied", "unauthorized_client":
-			http.Error(w, res.err.Error(), http.StatusUnauthorized)
+			http.Error(w, queryErr.Error(), http.StatusUnauthorized)
 			return
 		case "invalid_request":
-			http.Error(w, res.err.Error(), http.StatusBadRequest)
+			http.Error(w, queryErr.Error(), http.StatusBadRequest)
 			return
 		case "unsupported_response_type", "invalid_scope":
-			http.Error(w, res.err.Error(), http.StatusInternalServerError)
+			http.Error(w, queryErr.Error(), http.StatusInternalServerError)
 			return
 		case "server_error", "temporarily_unavailable":
-			http.Error(w, res.err.Error(), http.StatusServiceUnavailable)
+			http.Error(w, queryErr.Error(), http.StatusServiceUnavailable)
 			return
 		}
 
-		res.token, res.err = a.Exchange(ctx, r.URL.Query().Get("code"))
+		res.token, res.err = a.Exchange(a.ctx, r.URL.Query().Get("code"))
 		if res.err != nil {
 			http.Error(w, res.err.Error(), http.StatusBadRequest)
 			return

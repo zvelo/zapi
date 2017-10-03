@@ -14,6 +14,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"zvelo.io/go-zapi"
+	"zvelo.io/go-zapi/clientauth"
 	"zvelo.io/go-zapi/tokensource"
 	"zvelo.io/go-zapi/userauth"
 	"zvelo.io/msg"
@@ -44,7 +45,7 @@ var (
 	tlsInsecureSkipVerify  bool
 	mockNoCredentials      bool
 
-	version         = "v0.0.1"
+	version         = "v0.0.2"
 	app             = cli.NewApp()
 	defaultScopes   = strings.Fields(zapi.DefaultScopes)
 	defaultDatasets = []string{msg.CATEGORIZATION.String()}
@@ -209,17 +210,17 @@ func setupTokenSource() {
 		}
 
 		if debug {
-			userOpts = append(userOpts, userauth.WithDebug())
+			userOpts = append(userOpts, userauth.WithDebug(os.Stderr))
 		}
 
 		tokenSource = userauth.TokenSource(context.Background(), clientID, clientSecret, userOpts...)
 	} else {
 		cacheName = "client"
-		tokenSource = zapi.ClientCredentials(
+		tokenSource = clientauth.ClientCredentials(
 			context.Background(),
 			clientID,
 			clientSecret,
-			scopes...,
+			clientauth.WithScope(scopes...),
 		)
 	}
 
@@ -233,7 +234,7 @@ func setupTokenSource() {
 		}
 
 		if debug {
-			tokenSource = tokensource.Log(tokenSource)
+			tokenSource = tokensource.Log(os.Stderr, tokenSource)
 		}
 	}
 }
@@ -242,7 +243,7 @@ func setupZapiOpts() {
 	zapiOpts = append(zapiOpts, zapi.WithAddr(addr))
 
 	if debug {
-		zapiOpts = append(zapiOpts, zapi.WithDebug())
+		zapiOpts = append(zapiOpts, zapi.WithDebug(os.Stderr))
 	}
 
 	if forceTrace {

@@ -35,7 +35,7 @@
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-gateway"
   packages = ["runtime","runtime/internal","utilities"]
-  revision = "8bec008bd140852468324fdd069ed8e38d37a963"
+  revision = "ac41185c3844915c609be9505d00661ed3899def"
 
 [[projects]]
   branch = "master"
@@ -131,7 +131,7 @@
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/api/annotations","googleapis/rpc/status"]
-  revision = "1e559d0a00eef8a9a43151db4665280bd8dd5886"
+  revision = "f676e0f3ac6395ff1a529ae59a6670878a8371a6"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -147,19 +147,19 @@
 
 [[projects]]
   name = "zvelo.io/go-zapi"
-  packages = [".","internal/zvelo","tokensource","userauth"]
-  revision = "7a8b2297b1921e70a84a41fb82671212f302c68e"
-  version = "v0.0.1"
+  packages = [".","clientauth","internal/zvelo","tokensource","userauth"]
+  revision = "79f7e9172f42e459fdc4c90770506d470846e00b"
+  version = "v0.0.2"
 
 [[projects]]
   name = "zvelo.io/msg"
   packages = [".","mock"]
-  revision = "17d3f5a63c8da5049f76d172933b63a9908f1298"
-  version = "v1.2.3"
+  revision = "6a1a2fb68c92165272f3fd8b8e450e6d4754f9dc"
+  version = "v1.3.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "68f6995fbfa3640d61c4df2c424d2596bb9166af8ae8bb16d3956dcc78d958f2"
+  inputs-digest = "6d99696395768b3fa7f3b739a3e69dd7248b04633da44b5d473c69d69db44a05"
   solver-name = "gps-cdcl"
   solver-version = 1
