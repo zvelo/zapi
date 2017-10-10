@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -127,7 +128,7 @@ func pollReqID(ctx context.Context, reqID, url string) (bool, error) {
 	color.Set(color.FgCyan)
 
 	if traceID != "" {
-		fmt.Fprintf(os.Stderr, "Trace ID:           %s\n", traceID)
+		fmt.Fprintf(os.Stderr, "Trace ID:           %s\n", traceID[:strings.Index(traceID, ":")])
 	}
 
 	if err := queryResultTpl.ExecuteTemplate(os.Stdout, "QueryResult", result); err != nil {
@@ -147,7 +148,7 @@ func pollReqID(ctx context.Context, reqID, url string) (bool, error) {
 func pollREST(ctx context.Context, reqID string) (*msg.QueryResult, string, error) {
 	var resp *http.Response
 	result, err := restClient.QueryResultV1(ctx, reqID, zapi.Response(&resp))
-	traceID := resp.Header.Get("trace-id")
+	traceID := resp.Header.Get("uber-trace-id")
 	return result, traceID, err
 }
 
@@ -156,7 +157,7 @@ func pollGRPC(ctx context.Context, reqID string) (*msg.QueryResult, string, erro
 	var header metadata.MD
 	result, err := grpcClient.QueryResultV1(ctx, &req, grpc.Header(&header))
 	var traceID string
-	if tids, ok := header["trace-id"]; ok && len(tids) > 0 {
+	if tids, ok := header["uber-trace-id"]; ok && len(tids) > 0 {
 		traceID = tids[0]
 	}
 	return result, traceID, err

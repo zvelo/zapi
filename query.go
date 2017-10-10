@@ -296,7 +296,7 @@ func queryREST(ctx context.Context) error {
 		return err
 	}
 
-	return queryWait(ctx, resp.Header.Get("trace-id"), replies.Reply)
+	return queryWait(ctx, resp.Header.Get("uber-trace-id"), replies.Reply)
 }
 
 func queryGRPC(ctx context.Context) error {
@@ -307,7 +307,7 @@ func queryGRPC(ctx context.Context) error {
 	}
 
 	var traceID string
-	if tids, ok := header["trace-id"]; ok && len(tids) > 0 {
+	if tids, ok := header["uber-trace-id"]; ok && len(tids) > 0 {
 		traceID = tids[0]
 	}
 
@@ -317,7 +317,7 @@ func queryGRPC(ctx context.Context) error {
 var queryResultTplStr = `
 {{define "DataSet" -}}
 {{- if .Categorization -}}
-Categories:         {{range .Categorization.Value}}{{category .}} {{end}}
+Categories:         {{range .Categorization.Value}}{{.}} {{end}}
 {{end}}
 
 {{- if .Malicious -}}
@@ -364,15 +364,12 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 		}
 		return u
 	},
-	"category": func(i uint32) string {
-		return fmt.Sprintf("%s(%d)", msg.Category(i), i)
-	},
 	"malicious": func(m *msg.DataSet_Malicious) string {
-		if m.Verdict == uint32(msg.VERDICT_MALICIOUS) {
-			return fmt.Sprintf("%s(%d)", msg.Category(m.Category), m.Category)
+		if m.Verdict == msg.VERDICT_MALICIOUS {
+			return m.Category.String()
 		}
 
-		return msg.DataSet_Malicious_Verdict(m.Verdict).String()
+		return m.Verdict.String()
 	},
 	"httpStatus": func(i int32) string {
 		return fmt.Sprintf("%s(%d)", http.StatusText(int(i)), i)
@@ -388,7 +385,7 @@ func queryWait(ctx context.Context, traceID string, replies []*msg.QueryReply) e
 	w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
 
 	if traceID != "" {
-		fmt.Fprintf(w, "Trace ID:\t%s\n", traceID)
+		fmt.Fprintf(w, "Trace ID:\t%s\n", traceID[:strings.Index(traceID, ":")])
 	}
 
 	for i, reply := range replies {

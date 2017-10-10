@@ -27,7 +27,7 @@ var (
 	debug, rest            bool
 	restClient             zapi.RESTClient
 	grpcClient             zapi.GRPCClient
-	datasets               []uint32
+	datasets               []msg.DataSetType
 	forceTrace             bool
 	pollInterval           time.Duration
 	timeout                time.Duration
@@ -45,7 +45,7 @@ var (
 	tlsInsecureSkipVerify  bool
 	mockNoCredentials      bool
 
-	version         = "v1.0.1"
+	version         = "v1.0.2"
 	app             = cli.NewApp()
 	defaultScopes   = strings.Fields(zapi.DefaultScopes)
 	defaultDatasets = []string{msg.CATEGORIZATION.String()}
@@ -269,7 +269,7 @@ func setupDataSets() error {
 			continue
 		}
 
-		datasets = append(datasets, uint32(dst))
+		datasets = append(datasets, dst)
 	}
 
 	if len(datasets) == 0 {

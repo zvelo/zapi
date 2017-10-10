@@ -4,8 +4,8 @@
 [[projects]]
   name = "cloud.google.com/go"
   packages = ["compute/metadata"]
-  revision = "f6de2c509ed9d2af648c3c147207eaaf97149aed"
-  version = "v0.14.0"
+  revision = "eaddaf6dd7ee35fd3c2420c8d27478db176b0485"
+  version = "v0.15.0"
 
 [[projects]]
   branch = "master"
@@ -21,7 +21,7 @@
 
 [[projects]]
   name = "github.com/gogo/protobuf"
-  packages = ["gogoproto","proto","protoc-gen-gogo/descriptor","sortkeys"]
+  packages = ["gogoproto","jsonpb","proto","protoc-gen-gogo/descriptor","sortkeys","types"]
   revision = "100ba4e885062801d56799d78530b73b178a78f3"
   version = "v0.4"
 
@@ -35,7 +35,7 @@
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-gateway"
   packages = ["runtime","runtime/internal","utilities"]
-  revision = "ac41185c3844915c609be9505d00661ed3899def"
+  revision = "c323909dd41de182a54b4d1610f26034da5e097e"
 
 [[projects]]
   branch = "master"
@@ -83,7 +83,7 @@
   branch = "master"
   name = "github.com/segmentio/ksuid"
   packages = ["."]
-  revision = "1c9d746aad27142a443654fba83c3b7578dbeba0"
+  revision = "f9908e88e41ba9449018974316c8aa7633d71af5"
 
 [[projects]]
   name = "github.com/urfave/cli"
@@ -101,7 +101,7 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "0a9397675ba34b2845f758fe3cd68828369c6517"
+  revision = "a04bdaca5b32abe1c069418fb7088ae607de5bd0"
 
 [[projects]]
   branch = "master"
@@ -113,13 +113,13 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "314a259e304ff91bd6985da2a7149bbf91237993"
+  revision = "ebfc5b4631820b793c9010c87fd8fef0f39eb082"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "1cbadb444a806fd9430d14ad08967ed91da4fa0a"
+  revision = "825fc78a2fd6fa0a5447e300189e3219e05e1f25"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -148,18 +148,18 @@
 [[projects]]
   name = "zvelo.io/go-zapi"
   packages = [".","clientauth","internal/zvelo","tokensource","userauth"]
-  revision = "f06caf384acd915bcbfc0a6cbec97f762150d65d"
-  version = "v1.0.1"
+  revision = "b4e7be94c0b3f01093c12278da2a492a768f6257"
+  version = "v1.0.2"
 
 [[projects]]
   name = "zvelo.io/msg"
   packages = [".","mock"]
-  revision = "6be69a5db16b016ffae76eb442d722842202e8a0"
-  version = "v1.4.1"
+  revision = "1a6c419b45f5b87baf37ee06a9e6fef2b7914de2"
+  version = "v1.5.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6e1423bef1c62b8662dff7c70652bbda832c7c3cd80d765ea38a40a68c2c6086"
+  inputs-digest = "67e3cd8e14168569e0a2311b3fb286e350569cc2ac8666943c6521076b76c562"
   solver-name = "gps-cdcl"
   solver-version = 1
