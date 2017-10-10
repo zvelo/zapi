@@ -9,6 +9,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/NYTimes/gziphandler"
+  packages = ["."]
+  revision = "97ae7fbaf81620fe97840685304a78a306a39c64"
+
+[[projects]]
+  branch = "master"
   name = "github.com/coreos/go-oidc"
   packages = ["."]
   revision = "a93f71fdfe73d2c0f5413c0565eea0af6523a6df"
@@ -22,8 +28,8 @@
 [[projects]]
   name = "github.com/gogo/protobuf"
   packages = ["gogoproto","jsonpb","proto","protoc-gen-gogo/descriptor","sortkeys","types"]
-  revision = "100ba4e885062801d56799d78530b73b178a78f3"
-  version = "v0.4"
+  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
+  version = "v0.5"
 
 [[projects]]
   branch = "master"
@@ -56,6 +62,12 @@
   version = "v0.0.3"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/neelance/graphql-go"
+  packages = [".","errors","internal/common","internal/exec","internal/exec/packer","internal/exec/resolvable","internal/exec/selected","internal/query","internal/schema","internal/validation","introspection","log","trace"]
+  revision = "10eb949b8f4439212ef19d5d924c47c10c110cc7"
+
+[[projects]]
   name = "github.com/opentracing/opentracing-go"
   packages = [".","ext","log"]
   revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
@@ -83,7 +95,7 @@
   branch = "master"
   name = "github.com/segmentio/ksuid"
   packages = ["."]
-  revision = "f9908e88e41ba9449018974316c8aa7633d71af5"
+  revision = "3afe411cb572d01e8cca76be44d691de89efb1fb"
 
 [[projects]]
   name = "github.com/urfave/cli"
@@ -148,18 +160,18 @@
 [[projects]]
   name = "zvelo.io/go-zapi"
   packages = [".","clientauth","internal/zvelo","tokensource","userauth"]
-  revision = "b4e7be94c0b3f01093c12278da2a492a768f6257"
-  version = "v1.0.2"
+  revision = "962089243ac4149de55a90d9638fb426856e0c26"
+  version = "v1.0.4"
 
 [[projects]]
   name = "zvelo.io/msg"
-  packages = [".","mock"]
-  revision = "1a6c419b45f5b87baf37ee06a9e6fef2b7914de2"
-  version = "v1.5.1"
+  packages = [".","internal/static","mock"]
+  revision = "b4c0306f1b31d76380bc8848689bc0625cb59ac6"
+  version = "v1.5.5"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "67e3cd8e14168569e0a2311b3fb286e350569cc2ac8666943c6521076b76c562"
+  inputs-digest = "a4b8650e974020877784a7550a4c54de355e6b1d5e5eeffc7b7e293b86825b24"
   solver-name = "gps-cdcl"
   solver-version = 1
