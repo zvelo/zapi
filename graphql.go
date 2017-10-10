@@ -70,7 +70,7 @@ func graphQL(_ *cli.Context) error {
 
 	var resp *http.Response
 	var result string
-	if err := restClient.GraphQL(ctx, graphqlQuery, &result, zapi.Response(&resp)); err != nil {
+	if err := restV1Client.GraphQL(ctx, graphqlQuery, &result, zapi.Response(&resp)); err != nil {
 		return err
 	}
 

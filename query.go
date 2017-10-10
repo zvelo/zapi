@@ -39,7 +39,7 @@ var (
 	mockLocation       string
 	mockErrorCode      int
 	mockErrorMessage   string
-	mockOpts           []mock.Option
+	mockURLOpts        []mock.URLOption
 	contents           cli.StringSlice
 
 	queryCh = make(chan *msg.QueryResult)
@@ -161,11 +161,11 @@ func setupQuery(c *cli.Context) error {
 	}
 
 	if len(cats) > 0 {
-		mockOpts = append(mockOpts, mock.WithCategories(cats...))
+		mockURLOpts = append(mockURLOpts, mock.WithCategories(cats...))
 	}
 
 	if mockMaliciousClean {
-		mockOpts = append(mockOpts, mock.WithMalicious(msg.VERDICT_CLEAN, msg.UNKNOWN_CATEGORY))
+		mockURLOpts = append(mockURLOpts, mock.WithMalicious(msg.VERDICT_CLEAN, msg.UNKNOWN_CATEGORY))
 	}
 
 	if mockMalicious != "" {
@@ -173,23 +173,23 @@ func setupQuery(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		mockOpts = append(mockOpts, mock.WithMalicious(msg.VERDICT_MALICIOUS, msg.Category(malcat)))
+		mockURLOpts = append(mockURLOpts, mock.WithMalicious(msg.VERDICT_MALICIOUS, msg.Category(malcat)))
 	}
 
 	if mockCompleteAfter > 0 {
-		mockOpts = append(mockOpts, mock.WithCompleteAfter(mockCompleteAfter))
+		mockURLOpts = append(mockURLOpts, mock.WithCompleteAfter(mockCompleteAfter))
 	}
 
 	if mockFetchCode != 0 {
-		mockOpts = append(mockOpts, mock.WithFetchCode(int32(mockFetchCode)))
+		mockURLOpts = append(mockURLOpts, mock.WithFetchCode(int32(mockFetchCode)))
 	}
 
 	if mockLocation != "" {
-		mockOpts = append(mockOpts, mock.WithLocation(mockLocation))
+		mockURLOpts = append(mockURLOpts, mock.WithLocation(mockLocation))
 	}
 
 	if mockErrorCode != 0 || mockErrorMessage != "" {
-		mockOpts = append(mockOpts, mock.WithError(codes.Code(mockErrorCode), mockErrorMessage))
+		mockURLOpts = append(mockURLOpts, mock.WithError(codes.Code(mockErrorCode), mockErrorMessage))
 	}
 
 	if len(c.Args()) == 0 && len(contents) == 0 {
@@ -201,7 +201,7 @@ func setupQuery(c *cli.Context) error {
 			continue
 		}
 
-		u, err := mock.NewQueryURL("", mockOpts...)
+		u, err := mock.QueryURL("", mockURLOpts...)
 		if err != nil {
 			return err
 		}
@@ -247,7 +247,7 @@ func setupQuery(c *cli.Context) error {
 		}
 
 		var err error
-		if u, err = mock.NewQueryURL(u, mockOpts...); err != nil {
+		if u, err = mock.QueryURL(u, mockURLOpts...); err != nil {
 			return err
 		}
 
@@ -291,7 +291,7 @@ func query(_ *cli.Context) error {
 
 func queryREST(ctx context.Context) error {
 	var resp *http.Response
-	replies, err := restClient.QueryV1(ctx, &queryReq, zapi.Response(&resp))
+	replies, err := restV1Client.Query(ctx, &queryReq, zapi.Response(&resp))
 	if err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ func queryREST(ctx context.Context) error {
 
 func queryGRPC(ctx context.Context) error {
 	var header metadata.MD
-	replies, err := grpcClient.QueryV1(ctx, &queryReq, grpc.Header(&header))
+	replies, err := grpcV1Client.Query(ctx, &queryReq, grpc.Header(&header))
 	if err != nil {
 		return err
 	}

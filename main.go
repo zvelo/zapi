@@ -25,8 +25,8 @@ const name = "zapi"
 var (
 	addr                   string
 	debug, rest            bool
-	restClient             zapi.RESTClient
-	grpcClient             zapi.GRPCClient
+	restV1Client           zapi.RESTv1Client
+	grpcV1Client           zapi.GRPCv1Client
 	datasets               []msg.DataSetType
 	forceTrace             bool
 	pollInterval           time.Duration
@@ -45,7 +45,7 @@ var (
 	tlsInsecureSkipVerify  bool
 	mockNoCredentials      bool
 
-	version         = "v1.1.0"
+	version         = "v1.2.0"
 	app             = cli.NewApp()
 	defaultScopes   = strings.Fields(zapi.DefaultScopes)
 	defaultDatasets = []string{msg.CATEGORIZATION.String()}
@@ -283,11 +283,11 @@ func globalSetup(_ *cli.Context) error {
 	setupTokenSource()
 	setupZapiOpts()
 
-	restClient = zapi.NewREST(tokenSource, zapiOpts...)
+	restV1Client = zapi.NewREST(tokenSource, zapiOpts...)
 	grpcDialer := zapi.NewGRPC(tokenSource, zapiOpts...)
 
 	var err error
-	if grpcClient, err = grpcDialer.Dial(context.Background()); err != nil {
+	if grpcV1Client, err = grpcDialer.Dial(context.Background()); err != nil {
 		return err
 	}
 

@@ -160,18 +160,18 @@
 [[projects]]
   name = "zvelo.io/go-zapi"
   packages = [".","clientauth","internal/zvelo","tokensource","userauth"]
-  revision = "962089243ac4149de55a90d9638fb426856e0c26"
-  version = "v1.0.4"
+  revision = "800908d562cdd57050b80925429798e89ad10c52"
+  version = "v1.1.0"
 
 [[projects]]
   name = "zvelo.io/msg"
   packages = [".","internal/static","mock"]
-  revision = "b4c0306f1b31d76380bc8848689bc0625cb59ac6"
-  version = "v1.5.5"
+  revision = "26c0ca3853a27c6e527d5a91b539de22d4dc60e9"
+  version = "v1.6.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a4b8650e974020877784a7550a4c54de355e6b1d5e5eeffc7b7e293b86825b24"
+  inputs-digest = "db97d24304befafba2f4934d525e40a9c415eba7427a714818023d8c83fc3ea1"
   solver-name = "gps-cdcl"
   solver-version = 1

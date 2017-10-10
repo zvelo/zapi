@@ -33,5 +33,5 @@ func init() {
 
 func startMock(_ *cli.Context) error {
 	fmt.Fprintf(os.Stderr, "mock zveloAPI server listening at: %s\n", mockAddr)
-	return mock.ListenAndServeTLS(context.Background(), mockAddr)
+	return mock.APIv1().ListenAndServeTLS(context.Background(), mockAddr)
 }

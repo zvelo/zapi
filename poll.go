@@ -147,15 +147,15 @@ func pollReqID(ctx context.Context, reqID, url string) (bool, error) {
 
 func pollREST(ctx context.Context, reqID string) (*msg.QueryResult, string, error) {
 	var resp *http.Response
-	result, err := restClient.QueryResultV1(ctx, reqID, zapi.Response(&resp))
+	result, err := restV1Client.Result(ctx, reqID, zapi.Response(&resp))
 	traceID := resp.Header.Get("uber-trace-id")
 	return result, traceID, err
 }
 
 func pollGRPC(ctx context.Context, reqID string) (*msg.QueryResult, string, error) {
-	req := msg.QueryPollRequest{RequestId: reqID}
+	req := msg.RequestID{RequestId: reqID}
 	var header metadata.MD
-	result, err := grpcClient.QueryResultV1(ctx, &req, grpc.Header(&header))
+	result, err := grpcV1Client.Result(ctx, &req, grpc.Header(&header))
 	var traceID string
 	if tids, ok := header["uber-trace-id"]; ok && len(tids) > 0 {
 		traceID = tids[0]
