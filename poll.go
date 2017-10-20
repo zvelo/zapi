@@ -148,6 +148,9 @@ func pollReqID(ctx context.Context, reqID, url string) (bool, error) {
 func pollREST(ctx context.Context, reqID string) (*msg.QueryResult, string, error) {
 	var resp *http.Response
 	result, err := restV1Client.Result(ctx, reqID, zapi.Response(&resp))
+	if err != nil {
+		return nil, "", errors.Wrap(err, "couldn't get result from client")
+	}
 	traceID := resp.Header.Get("uber-trace-id")
 	return result, traceID, err
 }
