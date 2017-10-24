@@ -145,10 +145,12 @@ func pollReqID(ctx context.Context, reqID, url string) (bool, error) {
 	return result.QueryStatus.Complete, nil
 }
 
-func pollREST(ctx context.Context, reqID string) (*msg.QueryResult, string, error) {
+func pollREST(ctx context.Context, reqID string) (result *msg.QueryResult, traceID string, err error) {
 	var resp *http.Response
-	result, err := restV1Client.Result(ctx, reqID, zapi.Response(&resp))
-	traceID := resp.Header.Get("uber-trace-id")
+	result, err = restV1Client.Result(ctx, reqID, zapi.Response(&resp))
+	if result != nil {
+		traceID = resp.Header.Get("uber-trace-id")
+	}
 	return result, traceID, err
 }
 
