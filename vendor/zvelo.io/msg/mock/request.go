@@ -1,21 +1,21 @@
 package mock
 
 import (
+	"context"
 	"net/http"
-	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"zvelo.io/msg"
 )
 
-type URLOption func(*result)
+type ContextOption func(*result)
 
-func WithCategories(val ...msg.Category) URLOption {
+func WithCategories(val ...msg.Category) ContextOption {
 	return func(r *result) {
 		if len(val) == 0 {
 			return
@@ -33,7 +33,7 @@ func WithCategories(val ...msg.Category) URLOption {
 	}
 }
 
-func WithMalicious(verdict msg.DataSet_Malicious_Verdict, cat msg.Category) URLOption {
+func WithMalicious(verdict msg.DataSet_Malicious_Verdict, cat msg.Category) ContextOption {
 	return func(r *result) {
 		if r.ResponseDataset == nil {
 			r.ResponseDataset = &msg.DataSet{}
@@ -48,13 +48,13 @@ func WithMalicious(verdict msg.DataSet_Malicious_Verdict, cat msg.Category) URLO
 	}
 }
 
-func WithCompleteAfter(val time.Duration) URLOption {
+func WithCompleteAfter(val time.Duration) ContextOption {
 	return func(r *result) {
 		r.CompleteAfter = val
 	}
 }
 
-func WithFetchCode(val int32) URLOption {
+func WithFetchCode(val int32) ContextOption {
 	return func(r *result) {
 		if r.QueryStatus == nil {
 			r.QueryStatus = &msg.QueryStatus{}
@@ -64,7 +64,7 @@ func WithFetchCode(val int32) URLOption {
 	}
 }
 
-func WithLocation(val string) URLOption {
+func WithLocation(val string) ContextOption {
 	return func(r *result) {
 		if r.QueryStatus == nil {
 			r.QueryStatus = &msg.QueryStatus{}
@@ -74,7 +74,7 @@ func WithLocation(val string) URLOption {
 	}
 }
 
-func WithError(c codes.Code, str string) URLOption {
+func WithError(c codes.Code, str string) ContextOption {
 	return func(r *result) {
 		if r.QueryStatus == nil {
 			r.QueryStatus = &msg.QueryStatus{}
@@ -84,74 +84,91 @@ func WithError(c codes.Code, str string) URLOption {
 	}
 }
 
-func QueryURL(rawurl string, opts ...URLOption) (string, error) {
-	if !strings.Contains(rawurl, "://") {
-		rawurl = "http://" + rawurl
-	}
+const (
+	headerCategory          = "zvelo-mock-category"
+	headerMaliciousVerdict  = "zvelo-mock-malicious-verdict"
+	headerMaliciousCategory = "zvelo-mock-malicious-category"
+	headerCompleteAfter     = "zvelo-mock-complete-after"
+	headerFetchCode         = "zvelo-mock-fetch-code"
+	headerLocation          = "zvelo-mock-location"
+	headerErrorCode         = "zvelo-mock-error-code"
+	headerErrorMessage      = "zvelo-mock-error-message"
+)
 
+func QueryContext(ctx context.Context, opts ...ContextOption) context.Context {
 	var r result
 	for _, opt := range opts {
 		opt(&r)
 	}
 
-	u, err := url.Parse(rawurl)
-	if err != nil {
-		return "", err
-	}
-
-	query := u.Query()
+	var pairs []string
 
 	if ds := r.ResponseDataset; ds != nil {
 		if c := ds.Categorization; c != nil {
 			for _, cat := range c.Value {
-				query.Add("zvelo_cat", strconv.Itoa(int(cat)))
+				pairs = append(pairs, headerCategory, cat.String())
 			}
 		}
 
 		if m := ds.Malicious; m != nil {
 			if m.Category != 0 {
-				query.Set("zvelo_malicious_category", strconv.Itoa(int(m.Category)))
+				pairs = append(pairs, headerMaliciousCategory, m.Category.String())
 			}
 
 			if m.Verdict != msg.VERDICT_UNKNOWN {
-				query.Set("zvelo_malicious_verdict", strconv.Itoa(int(m.Verdict)))
+				pairs = append(pairs, headerMaliciousVerdict, m.Verdict.String())
 			}
 		}
 	}
 
 	if r.CompleteAfter > 0 {
-		query.Set("zvelo_complete_after", r.CompleteAfter.String())
+		pairs = append(pairs, headerCompleteAfter, r.CompleteAfter.String())
 	}
 
 	if qs := r.QueryStatus; qs != nil {
 		if qs.FetchCode != 0 {
-			query.Set("zvelo_fetchcode", strconv.Itoa(int(qs.FetchCode)))
+			pairs = append(pairs, headerFetchCode, strconv.Itoa(int(qs.FetchCode)))
 		}
 
 		if qs.Location != "" {
-			query.Set("zvelo_location", qs.Location)
+			pairs = append(pairs, headerLocation, qs.Location)
 		}
 
 		if e := qs.Error; e != nil {
 			if e.Code != 0 {
-				query.Set("zvelo_errorcode", strconv.Itoa(int(e.Code)))
+				pairs = append(pairs, headerErrorCode, strconv.Itoa(int(e.Code)))
 			}
 
 			if e.Message != "" {
-				query.Set("zvelo_errormsg", e.Message)
+				pairs = append(pairs, headerErrorMessage, e.Message)
 			}
 		}
 	}
 
-	u.RawQuery = query.Encode()
+	md := metadata.Pairs(pairs...)
 
-	return u.String(), nil
+	if cmd, ok := metadata.FromOutgoingContext(ctx); ok {
+		md = metadata.Join(cmd, md)
+	}
+
+	return metadata.NewOutgoingContext(ctx, md)
 }
 
-func parseURL(rawurl string, ds []msg.DataSetType, r *result) error {
-	u, err := url.Parse(rawurl)
-	if err != nil {
-		return err
+func mdGet(md metadata.MD, key string) string {
+	if md == nil {
+		return ""
+	}
+	v := md[key]
+	if len(v) == 0 {
+		return ""
+	}
+	return v[0]
+}
+
+func parseOpts(ctx context.Context, url string, content bool, ds []msg.DataSetType, r *result) error {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil
 	}
 
 	for _, t := range ds {
@@ -163,17 +180,15 @@ func parseURL(rawurl string, ds []msg.DataSetType, r *result) error {
 
 			r.ResponseDataset.Categorization = &msg.DataSet_Categorization{}
 
-			if catIDs, ok := u.Query()["zvelo_cat"]; ok {
-				cats := make([]msg.Category, len(catIDs))
-				for i, catID := range catIDs {
-					cat, err := strconv.Atoi(catID)
-					if err != nil {
-						return err
+			if categoryNames, ok := md[headerCategory]; ok {
+				categories := make([]msg.Category, len(categoryNames))
+				for i, categoryName := range categoryNames {
+					if categoryID, ok := msg.Category_value[categoryName]; ok {
+						categories[i] = msg.Category(categoryID)
 					}
-					cats[i] = msg.Category(cat)
 				}
 
-				WithCategories(cats...)(r)
+				WithCategories(categories...)(r)
 			}
 		case msg.MALICIOUS:
 			if r.ResponseDataset == nil {
@@ -182,33 +197,27 @@ func parseURL(rawurl string, ds []msg.DataSetType, r *result) error {
 
 			r.ResponseDataset.Malicious = &msg.DataSet_Malicious{}
 
-			if v := u.Query().Get("zvelo_malicious_verdict"); v != "" {
-				verdict, err := strconv.Atoi(v)
-				if err != nil {
-					return err
+			if v := mdGet(md, headerMaliciousVerdict); v != "" {
+				if verdict, ok := msg.DataSet_Malicious_Verdict_value[v]; ok {
+					WithMalicious(msg.DataSet_Malicious_Verdict(verdict), msg.UNKNOWN_CATEGORY)(r)
 				}
-
-				WithMalicious(msg.DataSet_Malicious_Verdict(verdict), msg.UNKNOWN_CATEGORY)(r)
 			}
 
-			if catID := u.Query().Get("zvelo_malicious_category"); catID != "" {
-				cat, err := strconv.Atoi(catID)
-				if err != nil {
-					return err
+			if categoryName := mdGet(md, headerMaliciousCategory); categoryName != "" {
+				if categoryID, ok := msg.Category_value[categoryName]; ok {
+					WithMalicious(msg.VERDICT_MALICIOUS, msg.Category(categoryID))(r)
 				}
-
-				WithMalicious(msg.VERDICT_MALICIOUS, msg.Category(cat))(r)
 			}
 		case msg.ECHO:
 			if r.ResponseDataset == nil {
 				r.ResponseDataset = &msg.DataSet{}
 			}
 
-			r.ResponseDataset.Echo = &msg.DataSet_Echo{Url: rawurl}
+			r.ResponseDataset.Echo = &msg.DataSet_Echo{Url: url}
 		}
 	}
 
-	if s := u.Query().Get("zvelo_complete_after"); s != "" {
+	if s := mdGet(md, headerCompleteAfter); s != "" {
 		d, err := time.ParseDuration(s)
 		if err != nil {
 			return err
@@ -217,23 +226,23 @@ func parseURL(rawurl string, ds []msg.DataSetType, r *result) error {
 		WithCompleteAfter(d)(r)
 	}
 
-	if c := u.Query().Get("zvelo_fetchcode"); c != "" {
+	if c := mdGet(md, headerFetchCode); c != "" {
 		code, err := strconv.ParseInt(c, 10, 32)
 		if err != nil {
 			return err
 		}
 
 		WithFetchCode(int32(code))(r)
-	} else if u != nil && u.Host != "" {
+	} else if !content {
 		WithFetchCode(http.StatusOK)(r)
 	}
 
-	if l := u.Query().Get("zvelo_location"); l != "" {
+	if l := mdGet(md, headerLocation); l != "" {
 		WithLocation(l)(r)
 	}
 
 	var errorCode codes.Code
-	if c := u.Query().Get("zvelo_errorcode"); c != "" {
+	if c := mdGet(md, headerErrorCode); c != "" {
 		code, err := strconv.ParseUint(c, 10, 32)
 		if err != nil {
 			return err
@@ -242,7 +251,7 @@ func parseURL(rawurl string, ds []msg.DataSetType, r *result) error {
 		errorCode = codes.Code(code)
 	}
 
-	errorMsg := u.Query().Get("zvelo_errormsg")
+	errorMsg := mdGet(md, headerErrorMessage)
 
 	if errorCode != 0 || errorMsg != "" {
 		WithError(errorCode, errorMsg)(r)

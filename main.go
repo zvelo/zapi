@@ -45,7 +45,7 @@ var (
 	tlsInsecureSkipVerify  bool
 	mockNoCredentials      bool
 
-	version         = "v1.2.0"
+	version         = "v1.2.1"
 	app             = cli.NewApp()
 	defaultScopes   = strings.Fields(zapi.DefaultScopes)
 	defaultDatasets = []string{msg.CATEGORIZATION.String()}
@@ -283,8 +283,8 @@ func globalSetup(_ *cli.Context) error {
 	setupTokenSource()
 	setupZapiOpts()
 
-	restV1Client = zapi.NewREST(tokenSource, zapiOpts...)
-	grpcDialer := zapi.NewGRPC(tokenSource, zapiOpts...)
+	restV1Client = zapi.NewRESTv1(tokenSource, zapiOpts...)
+	grpcDialer := zapi.NewGRPCv1(tokenSource, zapiOpts...)
 
 	var err error
 	if grpcV1Client, err = grpcDialer.Dial(context.Background()); err != nil {

@@ -39,7 +39,7 @@ var (
 	mockLocation       string
 	mockErrorCode      int
 	mockErrorMessage   string
-	mockURLOpts        []mock.URLOption
+	mockContextOpts    []mock.ContextOption
 	contents           cli.StringSlice
 
 	queryCh = make(chan *msg.QueryResult)
@@ -161,11 +161,11 @@ func setupQuery(c *cli.Context) error {
 	}
 
 	if len(cats) > 0 {
-		mockURLOpts = append(mockURLOpts, mock.WithCategories(cats...))
+		mockContextOpts = append(mockContextOpts, mock.WithCategories(cats...))
 	}
 
 	if mockMaliciousClean {
-		mockURLOpts = append(mockURLOpts, mock.WithMalicious(msg.VERDICT_CLEAN, msg.UNKNOWN_CATEGORY))
+		mockContextOpts = append(mockContextOpts, mock.WithMalicious(msg.VERDICT_CLEAN, msg.UNKNOWN_CATEGORY))
 	}
 
 	if mockMalicious != "" {
@@ -173,23 +173,23 @@ func setupQuery(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		mockURLOpts = append(mockURLOpts, mock.WithMalicious(msg.VERDICT_MALICIOUS, msg.Category(malcat)))
+		mockContextOpts = append(mockContextOpts, mock.WithMalicious(msg.VERDICT_MALICIOUS, msg.Category(malcat)))
 	}
 
 	if mockCompleteAfter > 0 {
-		mockURLOpts = append(mockURLOpts, mock.WithCompleteAfter(mockCompleteAfter))
+		mockContextOpts = append(mockContextOpts, mock.WithCompleteAfter(mockCompleteAfter))
 	}
 
 	if mockFetchCode != 0 {
-		mockURLOpts = append(mockURLOpts, mock.WithFetchCode(int32(mockFetchCode)))
+		mockContextOpts = append(mockContextOpts, mock.WithFetchCode(int32(mockFetchCode)))
 	}
 
 	if mockLocation != "" {
-		mockURLOpts = append(mockURLOpts, mock.WithLocation(mockLocation))
+		mockContextOpts = append(mockContextOpts, mock.WithLocation(mockLocation))
 	}
 
 	if mockErrorCode != 0 || mockErrorMessage != "" {
-		mockURLOpts = append(mockURLOpts, mock.WithError(codes.Code(mockErrorCode), mockErrorMessage))
+		mockContextOpts = append(mockContextOpts, mock.WithError(codes.Code(mockErrorCode), mockErrorMessage))
 	}
 
 	if len(c.Args()) == 0 && len(contents) == 0 {
@@ -201,15 +201,9 @@ func setupQuery(c *cli.Context) error {
 			continue
 		}
 
-		u, err := mock.QueryURL("", mockURLOpts...)
-		if err != nil {
-			return err
-		}
-
 		// no '@' implies the data is provided directly
 		if c[0] != '@' {
 			queryReq.Content = append(queryReq.Content, &msg.QueryRequests_URLContent{
-				Url:     u,
 				Content: c,
 			})
 			continue
@@ -218,11 +212,10 @@ func setupQuery(c *cli.Context) error {
 		// '@-' means we need to read from stdin
 		if c == "@-" {
 			var buf bytes.Buffer
-			if _, err = buf.ReadFrom(os.Stdin); err != nil {
+			if _, err := buf.ReadFrom(os.Stdin); err != nil {
 				return err
 			}
 			queryReq.Content = append(queryReq.Content, &msg.QueryRequests_URLContent{
-				Url:     u,
 				Content: buf.String(),
 			})
 			continue
@@ -236,7 +229,6 @@ func setupQuery(c *cli.Context) error {
 		}
 
 		queryReq.Content = append(queryReq.Content, &msg.QueryRequests_URLContent{
-			Url:     u,
 			Content: string(data),
 		})
 	}
@@ -246,9 +238,8 @@ func setupQuery(c *cli.Context) error {
 			continue
 		}
 
-		var err error
-		if u, err = mock.QueryURL(u, mockURLOpts...); err != nil {
-			return err
+		if !strings.Contains(u, "://") {
+			u = "http://" + u
 		}
 
 		queryReq.Url = append(queryReq.Url, u)
@@ -281,6 +272,8 @@ func callbackHandler() zapi.Handler {
 func query(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+
+	ctx = mock.QueryContext(ctx, mockContextOpts...)
 
 	if rest {
 		return queryREST(ctx)

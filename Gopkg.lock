@@ -14,10 +14,10 @@
   revision = "97ae7fbaf81620fe97840685304a78a306a39c64"
 
 [[projects]]
-  branch = "master"
+  branch = "v2"
   name = "github.com/coreos/go-oidc"
   packages = ["."]
-  revision = "a93f71fdfe73d2c0f5413c0565eea0af6523a6df"
+  revision = "77e7f2010a464ade7338597afe650dfcffbe2ca8"
 
 [[projects]]
   name = "github.com/fatih/color"
@@ -35,19 +35,19 @@
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["jsonpb","proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/struct","ptypes/timestamp"]
-  revision = "130e6b02ab059e7b717a096f397c5b60111cae74"
+  revision = "1643683e1b54a9e88ad26d98f81400c8c9d9f4f9"
 
 [[projects]]
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-gateway"
   packages = ["runtime","runtime/internal","utilities"]
-  revision = "c323909dd41de182a54b4d1610f26034da5e097e"
+  revision = "b0be3cdef0ed27e3c420795e2efbfe9c27e839cc"
 
 [[projects]]
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-opentracing"
   packages = ["go/otgrpc"]
-  revision = "6c130eed1e297e1aa4d415a50c90d0c81c52677e"
+  revision = "a570af39704b9f3d4bb530d83192a99ea6337d5a"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -65,7 +65,7 @@
   branch = "master"
   name = "github.com/neelance/graphql-go"
   packages = [".","errors","internal/common","internal/exec","internal/exec/packer","internal/exec/resolvable","internal/exec/selected","internal/query","internal/schema","internal/validation","introspection","log","trace"]
-  revision = "10eb949b8f4439212ef19d5d924c47c10c110cc7"
+  revision = "beff08417b04a91f0a7618b55786d63eec833b9f"
 
 [[projects]]
   name = "github.com/opentracing/opentracing-go"
@@ -89,13 +89,13 @@
   branch = "master"
   name = "github.com/pquerna/cachecontrol"
   packages = [".","cacheobject"]
-  revision = "5475d973ea70916980bee28c2b674f3dc3eaed0a"
+  revision = "0dec1b30a0215bb68605dfc568e8855066c9202d"
 
 [[projects]]
   branch = "master"
   name = "github.com/segmentio/ksuid"
   packages = ["."]
-  revision = "3afe411cb572d01e8cca76be44d691de89efb1fb"
+  revision = "9cb615b023d376fe5590ade4f92e11a9482b69cb"
 
 [[projects]]
   name = "github.com/urfave/cli"
@@ -107,13 +107,13 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ed25519","ed25519/internal/edwards25519"]
-  revision = "9419663f5a44be8b34ca85f08abc5fe1be11f8a3"
+  revision = "bd6f299fb381e4c3393d1c4b1f0b94f5e77650c8"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "a04bdaca5b32abe1c069418fb7088ae607de5bd0"
+  revision = "c73622c77280266305273cb545f54516ced95b93"
 
 [[projects]]
   branch = "master"
@@ -125,13 +125,13 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "ebfc5b4631820b793c9010c87fd8fef0f39eb082"
+  revision = "95c6576299259db960f6c5b9b69ea52422860fce"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "825fc78a2fd6fa0a5447e300189e3219e05e1f25"
+  revision = "3cfc6c0d6bf80d724d98c26c4822f4a35d37598e"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -147,9 +147,9 @@
 
 [[projects]]
   name = "google.golang.org/grpc"
-  packages = [".","codes","connectivity","credentials","credentials/oauth","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","stats","status","tap","transport"]
-  revision = "f92cdcd7dcdc69e81b2d7b338479a19a8723cfa3"
-  version = "v1.6.0"
+  packages = [".","balancer","codes","connectivity","credentials","credentials/oauth","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","resolver","stats","status","tap","transport"]
+  revision = "61d37c5d657a47e4404fd6823bd598341a2595de"
+  version = "v1.7.1"
 
 [[projects]]
   name = "gopkg.in/square/go-jose.v2"
@@ -160,18 +160,18 @@
 [[projects]]
   name = "zvelo.io/go-zapi"
   packages = [".","clientauth","internal/zvelo","tokensource","userauth"]
-  revision = "800908d562cdd57050b80925429798e89ad10c52"
-  version = "v1.1.0"
+  revision = "a65367ed222040ee65af562dbfa2b06b1d96e66f"
+  version = "v1.2.0"
 
 [[projects]]
   name = "zvelo.io/msg"
   packages = [".","internal/static","mock"]
-  revision = "26c0ca3853a27c6e527d5a91b539de22d4dc60e9"
-  version = "v1.6.0"
+  revision = "4ab86a800b49b0b24394b71c48c09bacb4bb25b6"
+  version = "v1.7.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "db97d24304befafba2f4934d525e40a9c415eba7427a714818023d8c83fc3ea1"
+  inputs-digest = "0da0a355f2066e888a32d232bbb3cf5c786093c951f5456b8920bd5f0ec8a343"
   solver-name = "gps-cdcl"
   solver-version = 1

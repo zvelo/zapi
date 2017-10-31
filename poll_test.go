@@ -12,24 +12,22 @@ import (
 // TestPollREST is a regression test for a previous version of
 // pollREST which crashed due to an unchecked error return.
 func TestPollREST(t *testing.T) {
-	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-		l      net.Listener
-		err    error
-	)
-	ctx, cancel = context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if l, err = net.Listen("tcp", "localhost:0"); err != nil {
+
+	l, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
 		t.Error(err)
 	}
+
 	go func() {
-		var err error
-		if err = mock.APIv1().ServeTLS(ctx, l); err != nil {
-			t.Error(err)
+		if serr := mock.APIv1().ServeTLS(ctx, l); serr != nil {
+			t.Error(serr)
 		}
 	}()
-	restV1Client = zapi.NewREST(nil, zapi.WithAddr(l.Addr().String()))
+
+	restV1Client = zapi.NewRESTv1(nil, zapi.WithAddr(l.Addr().String()))
+
 	// This should fail due to a TLS certificate error
 	if _, _, err = pollREST(context.Background(), "22d29585-0204-406f-9941-ed15340c4c0f"); err == nil {
 		t.Error("request which should have failed … succeeded instead")
