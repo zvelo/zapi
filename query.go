@@ -365,7 +365,7 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 		return m.Verdict.String()
 	},
 	"httpStatus": func(i int32) string {
-		return fmt.Sprintf("%s(%d)", http.StatusText(int(i)), i)
+		return fmt.Sprintf("%s (%d)", http.StatusText(int(i)), i)
 	},
 	"errorcode": func(i int32) string {
 		return fmt.Sprintf("%s(%d)", codes.Code(i), i)
