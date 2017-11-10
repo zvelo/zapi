@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
@@ -50,6 +52,17 @@ var (
 	defaultScopes   = strings.Fields(zapi.DefaultScopes)
 	defaultDatasets = []string{msg.CATEGORIZATION.String()}
 )
+
+func errorf(format string, a ...interface{}) {
+	_, _ = color.New(color.FgRed).Fprintf(os.Stderr, format, a...)
+}
+
+func printfFunc(attr color.Attribute, w io.Writer) func(format string, a ...interface{}) {
+	c := color.New(attr).FprintfFunc()
+	return func(format string, a ...interface{}) {
+		c(w, format, a...)
+	}
+}
 
 func init() {
 	app.Name = name
@@ -178,8 +191,8 @@ func init() {
 }
 
 func main() {
-	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+	if err := app.Run(os.Args); err != nil && err != context.Canceled {
+		errorf("%s\n", err)
 		os.Exit(1)
 	}
 }
@@ -265,7 +278,7 @@ func setupDataSets() error {
 
 		dst, err := msg.NewDataSetType(dsName)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "invalid dataset type: %s\n", dsName)
+			errorf("invalid dataset type: %s\n", dsName)
 			continue
 		}
 

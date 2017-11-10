@@ -65,34 +65,33 @@ func poll(_ *cli.Context) error {
 		return err
 	}
 
-	if pollOnce || len(pollRequestIDs) == 0 {
-		resultWg.Wait()
-		return nil
+	wait := func() error {
+		// wait for the wait group to complete or the context to timeout
+		go func() {
+			resultWg.Wait()
+			cancel()
+		}()
+
+		<-ctx.Done()
+		return ctx.Err()
 	}
 
-	// now start polling on a timer
+	if pollOnce || len(pollRequestIDs) == 0 {
+		return wait()
+	}
+
+	// now start polling with a ticker
 	go pollHandler(ctx, nil)
 
-	resultWg.Wait()
-
-	return nil
+	return wait()
 }
 
-type resultCallback func(context.Context, *msg.QueryResult) ([]string, error)
+type resultCallback func(context.Context, *msg.QueryResult) []string
 
 func pollHandler(ctx context.Context, fn resultCallback) {
-	ticker := time.NewTicker(pollInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			fmt.Fprintf(os.Stderr, "%s\n", ctx.Err())
-			return
-		case <-ticker.C:
-			if err := pollReqIDs(ctx, fn); err != nil {
-				fmt.Fprintf(os.Stderr, "%s\n", err)
-			}
+	for range time.Tick(pollInterval) {
+		if err := pollReqIDs(ctx, fn); err != nil {
+			errorf("%s\n", err)
 		}
 	}
 }
@@ -119,7 +118,7 @@ func pollReqIDs(ctx context.Context, fn resultCallback) error {
 }
 
 func pollReqID(ctx context.Context, reqID string, fn resultCallback) (bool, []string, error) {
-	url := urlFromReqID(reqID, "")
+	url := getReqIDData(reqID, "").url
 
 	if debug {
 		if url == "" {
@@ -129,15 +128,14 @@ func pollReqID(ctx context.Context, reqID string, fn resultCallback) (bool, []st
 		}
 	}
 
-	var result *msg.QueryResult
-	var traceID string
-	var err error
-
+	pollFn := pollGRPC
 	if rest {
-		result, traceID, err = pollREST(ctx, reqID)
-	} else {
-		result, traceID, err = pollGRPC(ctx, reqID)
+		pollFn = pollREST
 	}
+
+	var err error
+	result := queryResult{pollStart: time.Now()}
+	result.QueryResult, result.pollTraceID, err = pollFn(ctx, reqID)
 
 	if err != nil {
 		return false, nil, err
@@ -145,17 +143,12 @@ func pollReqID(ctx context.Context, reqID string, fn resultCallback) (bool, []st
 
 	var newReqIDs []string
 	if fn != nil {
-		if newReqIDs, err = fn(ctx, result); err != nil {
-			return false, nil, err
-		}
+		newReqIDs = fn(ctx, result.QueryResult)
 	}
 
-	resultCh <- queryResult{
-		traceID: traceID,
-		result:  result,
-	}
+	resultCh <- result
 
-	return isComplete(result), newReqIDs, nil
+	return isComplete(result.QueryResult), newReqIDs, nil
 }
 
 func pollREST(ctx context.Context, reqID string) (result *msg.QueryResult, traceID string, err error) {

@@ -28,6 +28,12 @@ import (
 	"zvelo.io/msg/mock"
 )
 
+type reqData struct {
+	url          string
+	start        time.Time
+	redirectFrom string
+}
+
 var (
 	callbackOpts           []callback.Option
 	callbackURL            string
@@ -50,11 +56,8 @@ var (
 	mockContextOpts        []mock.ContextOption
 	contents               cli.StringSlice
 
-	reqIDtoURLLock sync.RWMutex
-	reqIDtoURL     = map[string]string{}
-
-	redirectsLock sync.RWMutex
-	redirects     = map[string]string{}
+	reqIDDataLock sync.RWMutex
+	reqIDData     = map[string]reqData{}
 )
 
 func init() {
@@ -313,6 +316,7 @@ func runQuery(_ *cli.Context) error {
 
 	if callbackURL != "" {
 		go func() {
+			fmt.Fprintf(os.Stderr, "listening for callbacks at %s\n", queryListen)
 			_ = http.ListenAndServe(
 				queryListen,
 				callback.HTTPHandler(name, callbackHandler(ctx), callbackOpts...),
@@ -337,31 +341,40 @@ func runQuery(_ *cli.Context) error {
 	}
 
 	if !queryNoPoll || callbackURL != "" {
-		resultWg.Wait()
+		// wait for the wait group to complete or the context to timeout
+		go func() {
+			resultWg.Wait()
+			cancel()
+		}()
+
+		<-ctx.Done()
+		return ctx.Err()
 	}
 
 	return nil
 }
 
 func query(ctx context.Context, queryReq *msg.QueryRequests) ([]string, error) {
+	start := time.Now()
+
 	if rest {
-		return queryREST(ctx, queryReq)
+		return queryREST(ctx, start, queryReq)
 	}
 
-	return queryGRPC(ctx, queryReq)
+	return queryGRPC(ctx, start, queryReq)
 }
 
-func queryREST(ctx context.Context, queryReq *msg.QueryRequests) ([]string, error) {
+func queryREST(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) ([]string, error) {
 	var resp *http.Response
 	replies, err := restV1Client.Query(ctx, queryReq, zapi.Response(&resp))
 	if err != nil {
 		return nil, err
 	}
 
-	return queryComplete(ctx, queryReq, resp.Header.Get("uber-trace-id"), replies.Reply)
+	return queryComplete(ctx, start, queryReq, resp.Header.Get("uber-trace-id"), replies.Reply), nil
 }
 
-func queryGRPC(ctx context.Context, queryReq *msg.QueryRequests) ([]string, error) {
+func queryGRPC(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) ([]string, error) {
 	var header metadata.MD
 	replies, err := grpcV1Client.Query(ctx, queryReq, grpc.Header(&header))
 	if err != nil {
@@ -373,36 +386,49 @@ func queryGRPC(ctx context.Context, queryReq *msg.QueryRequests) ([]string, erro
 		traceID = tids[0]
 	}
 
-	return queryComplete(ctx, queryReq, traceID, replies.Reply)
+	return queryComplete(ctx, start, queryReq, traceID, replies.Reply), nil
 }
 
-func urlFromReqID(reqID, def string) string {
-	reqIDtoURLLock.RLock()
+func getReqIDData(reqID, defURL string) reqData {
+	reqIDDataLock.RLock()
 
-	if u, ok := reqIDtoURL[reqID]; ok {
-		reqIDtoURLLock.RUnlock()
-		return u
+	if data, ok := reqIDData[reqID]; ok {
+		reqIDDataLock.RUnlock()
+		if data.url == "" {
+			data.url = defURL
+		}
+		return data
 	}
 
-	reqIDtoURLLock.RUnlock()
+	reqIDDataLock.RUnlock()
 
-	return def
+	return reqData{url: defURL}
 }
 
-func setReqIDURL(reqID, url string) {
-	reqIDtoURLLock.Lock()
-	reqIDtoURL[reqID] = url
-	reqIDtoURLLock.Unlock()
+func setReqIDData(reqID, url string, start time.Time) {
+	reqIDDataLock.Lock()
+	reqIDData[reqID] = reqData{
+		url:   url,
+		start: start,
+	}
+	reqIDDataLock.Unlock()
 }
 
-func queryComplete(ctx context.Context, queryReq *msg.QueryRequests, traceID string, replies []*msg.QueryReply) ([]string, error) {
-	color.Set(color.FgCyan)
+func printTraceID(traceID string) string {
+	return traceID[:strings.Index(traceID, ":")]
+}
 
+func queryComplete(ctx context.Context, start time.Time, queryReq *msg.QueryRequests, traceID string, replies []*msg.QueryReply) []string {
 	w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
+	defer func() { _ = w.Flush() }()
+
+	printf := printfFunc(color.FgCyan, w)
 
 	if traceID != "" {
-		fmt.Fprintf(w, "Trace ID:\t%s\n", traceID[:strings.Index(traceID, ":")])
+		printf("Trace ID:\t%s\n", printTraceID(traceID))
 	}
+
+	printf("Query Duration:\t%s\n", time.Since(start))
 
 	var ret []string
 
@@ -415,7 +441,8 @@ func queryComplete(ctx context.Context, queryReq *msg.QueryRequests, traceID str
 
 			p, err := url.Parse(u)
 			if err != nil {
-				return nil, err
+				errorf("error parsing url (%s): %s\n", u, err)
+				continue
 			}
 
 			if p.Host == "" {
@@ -430,7 +457,7 @@ func queryComplete(ctx context.Context, queryReq *msg.QueryRequests, traceID str
 				}
 			}
 		} else {
-			fmt.Fprintf(os.Stderr, "got unexpected reply: %d => %#v\n", i, reply)
+			errorf("got unexpected reply: %d => %#v\n", i, reply)
 			continue
 		}
 
@@ -440,56 +467,56 @@ func queryComplete(ctx context.Context, queryReq *msg.QueryRequests, traceID str
 
 		ret = append(ret, reply.RequestId)
 
-		setReqIDURL(reply.RequestId, u)
-		fmt.Fprintf(w, "%s:\t%s\n", u, reply.RequestId)
+		setReqIDData(reply.RequestId, u, start)
+		printf("%s:\t%s\n", u, reply.RequestId)
 	}
 
-	if err := w.Flush(); err != nil {
-		color.Unset()
-		return nil, err
-	}
-
-	color.Unset()
-
-	return ret, nil
+	return ret
 }
 
 func countRedirects(reqID string) int {
-	redirectsLock.RLock()
-	defer redirectsLock.RUnlock()
+	reqIDDataLock.RLock()
+	defer reqIDDataLock.RUnlock()
 
-	var ok bool
 	for ret := 0; ; ret++ {
-		if reqID, ok = redirects[reqID]; !ok {
+		data, ok := reqIDData[reqID]
+		if !ok || data.redirectFrom == "" {
 			return ret
 		}
+		reqID = data.redirectFrom
 	}
 }
 
-func followRedirect(ctx context.Context, result *msg.QueryResult) ([]string, error) {
-	url := urlFromReqID(result.RequestId, "")
+func followRedirect(ctx context.Context, result *msg.QueryResult) []string {
+	url := getReqIDData(result.RequestId, "").url
 
-	if queryNoFollowRedirects ||
-		result == nil ||
-		result.QueryStatus == nil ||
-		!result.QueryStatus.Complete ||
-		result.QueryStatus.Location == "" ||
-		result.QueryStatus.Location == url ||
-		result.QueryStatus.Error != nil ||
-		result.QueryStatus.FetchCode < 300 ||
-		result.QueryStatus.FetchCode >= 400 {
-		return nil, nil
+	if queryNoFollowRedirects || !isComplete(result) {
+		return nil
+	}
+
+	qs := result.QueryStatus
+
+	if qs.Location == "" ||
+		qs.FetchCode < 300 ||
+		qs.FetchCode > 399 {
+		return nil
+	}
+
+	if qs.Location == url {
+		errorf("\nnot redirecting to the same url\n")
+		return nil
 	}
 
 	num := countRedirects(result.RequestId) + 1
-	location := result.QueryStatus.Location
+	location := qs.Location
 
 	if num >= queryRedirectLimit {
-		fmt.Fprintf(os.Stderr, "\ntoo many redirects (%d): %s → %s\n", num, url, location)
-		return nil, nil
+		errorf("\ntoo many redirects (%d): %s → %s\n", num, url, location)
+		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "\nfollowing redirect #%d: %s → %s\n", num, url, location)
+	printf := printfFunc(color.FgYellow, os.Stderr)
+	printf("\nfollowing redirect #%d: %s → %s\n", num, url, location)
 
 	reqIDs, err := query(ctx, &msg.QueryRequests{
 		Callback: callbackURL,
@@ -497,24 +524,28 @@ func followRedirect(ctx context.Context, result *msg.QueryResult) ([]string, err
 		Url:      []string{location},
 	})
 
-	if err != nil || len(reqIDs) == 0 {
-		return nil, err
+	if err != nil {
+		errorf("query error: %s\n", err)
+		return nil
+	}
+
+	if len(reqIDs) == 0 {
+		return nil
 	}
 
 	// There should be at most 1 reqID
-	redirectsLock.Lock()
-	redirects[reqIDs[0]] = result.RequestId
-	redirectsLock.Unlock()
+	reqIDDataLock.Lock()
+	data := reqIDData[reqIDs[0]]
+	data.redirectFrom = result.RequestId
+	reqIDData[reqIDs[0]] = data
+	reqIDDataLock.Unlock()
 
-	return reqIDs, nil
+	return reqIDs
 }
 
 func callbackHandler(ctx context.Context) callback.Handler {
 	return callback.HandlerFunc(func(result *msg.QueryResult) {
-		if _, err := followRedirect(ctx, result); err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-		}
-
-		resultCh <- queryResult{result: result}
+		followRedirect(ctx, result)
+		resultCh <- queryResult{QueryResult: result}
 	})
 }

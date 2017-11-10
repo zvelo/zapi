@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 
 	zapi "zvelo.io/go-zapi"
 
@@ -77,9 +76,8 @@ func graphQL(_ *cli.Context) error {
 	traceID := resp.Header.Get("uber-trace-id")
 
 	if traceID != "" {
-		color.Set(color.FgCyan)
-		fmt.Fprintf(os.Stderr, "Trace ID: %s\n", traceID[:strings.Index(traceID, ":")])
-		color.Unset()
+		printf := printfFunc(color.FgCyan, os.Stderr)
+		printf("Trace ID: %s\n", printTraceID(traceID))
 	}
 
 	fmt.Println(result)

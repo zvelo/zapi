@@ -1,21 +1,25 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 
 	"github.com/fatih/color"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"zvelo.io/msg"
 )
 
 type queryResult struct {
-	result  *msg.QueryResult
-	traceID string
+	*msg.QueryResult
+	pollTraceID string
+	pollStart   time.Time
 }
 
 var (
@@ -44,9 +48,6 @@ Error Code:         {{errorcode .Code}}
 {{- end}}
 
 {{define "QueryStatus" -}}
-Complete:           {{if .}}{{.Complete}}
-{{else}}false
-{{end}}
 {{- if . -}}
 {{if .FetchCode}}Fetch Status:       {{httpStatus .FetchCode}}
 {{end}}
@@ -61,13 +62,34 @@ Complete:           {{if .}}{{.Complete}}
 {{end}}
 {{- if .RequestId}}Request ID:         {{.RequestId}}
 {{end}}
+{{- if poll .}}Poll Duration:      {{poll .}}
+{{end}}
+{{- if complete .}}Complete:           {{complete .}}
+{{end}}
 {{- if .ResponseDataset}}{{template "DataSet" .ResponseDataset}}{{end}}
 {{- template "QueryStatus" .QueryStatus}}
 {{- end}}`
 
 var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.FuncMap{
 	"url": func(reqID string) string {
-		return urlFromReqID(reqID, "<UNKNOWN>")
+		return getReqIDData(reqID, "<UNKNOWN>").url
+	},
+	"complete": func(result queryResult) string {
+		if !isComplete(result.QueryResult) {
+			return "false"
+		}
+
+		if data := getReqIDData(result.RequestId, ""); data.start != (time.Time{}) {
+			return time.Since(data.start).String()
+		}
+
+		return "false"
+	},
+	"poll": func(result queryResult) string {
+		if result.pollStart != (time.Time{}) {
+			return time.Since(result.pollStart).String()
+		}
+		return ""
 	},
 	"malicious": func(m *msg.DataSet_Malicious) string {
 		if m.Verdict == msg.VERDICT_MALICIOUS {
@@ -80,32 +102,41 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 		return fmt.Sprintf("%s (%d)", http.StatusText(int(i)), i)
 	},
 	"errorcode": func(i int32) string {
-		return fmt.Sprintf("%s(%d)", codes.Code(i), i)
+		return fmt.Sprintf("%s (%d)", codes.Code(i), i)
 	},
 }).Parse(queryResultTplStr))
 
 func isComplete(result *msg.QueryResult) bool {
-	return result != nil && result.QueryStatus != nil && result.QueryStatus.Complete
+	if result == nil || result.QueryStatus == nil {
+		return false
+	}
+
+	if status.ErrorProto(result.QueryStatus.Error) != nil {
+		// there was an error, complete is implied
+		return true
+	}
+
+	return result.QueryStatus.Complete
 }
 
 func resultHandler() {
 	for result := range resultCh {
 		fmt.Fprintf(os.Stderr, "\nreceived result\n")
 
-		color.Set(color.FgCyan)
-
-		if traceID := result.traceID; traceID != "" {
-			fmt.Fprintf(os.Stderr, "Trace ID:           %s\n", traceID[:strings.Index(traceID, ":")])
+		if traceID := result.pollTraceID; traceID != "" {
+			printf := printfFunc(color.FgCyan, os.Stderr)
+			printf("Trace ID:           %s\n", traceID[:strings.Index(traceID, ":")])
 		}
 
-		if err := queryResultTpl.ExecuteTemplate(os.Stdout, "QueryResult", result.result); err != nil {
-			color.Unset()
-			panic(err)
+		var buf bytes.Buffer
+		if err := queryResultTpl.ExecuteTemplate(&buf, "QueryResult", result); err != nil {
+			errorf("%s\n", err)
 		}
 
-		color.Unset()
+		printf := printfFunc(color.FgCyan, os.Stdout)
+		printf(buf.String())
 
-		if isComplete(result.result) {
+		if isComplete(result.QueryResult) {
 			resultWg.Done()
 		}
 	}
