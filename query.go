@@ -22,15 +22,17 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 
-	zapi "zvelo.io/go-zapi"
+	"zvelo.io/go-zapi"
+	"zvelo.io/go-zapi/callback"
 	"zvelo.io/msg"
 	"zvelo.io/msg/mock"
 )
 
 var (
-	zapiCallbackOpts       []zapi.CallbackOption
+	callbackOpts           []callback.Option
 	callbackURL            string
 	callbackNoValidate     bool
+	callbackNoKeyCache     bool
 	queryListen            string
 	queryNoPoll            bool
 	queryNoFollowRedirects bool
@@ -81,6 +83,12 @@ func init() {
 				EnvVar:      "ZVELO_NO_VALIDATE_CALLBACK",
 				Usage:       "do not validate callback signatures",
 				Destination: &callbackNoValidate,
+			},
+			cli.BoolFlag{
+				Name:        "no-key-cache",
+				EnvVar:      "ZVELO_NO_KEY_CACHE",
+				Usage:       "do not cache public keys when validating http signatures in callbacks",
+				Destination: &callbackNoKeyCache,
 			},
 			cli.BoolFlag{
 				Name:        "no-poll",
@@ -176,11 +184,15 @@ func parseCategory(name string) (msg.Category, error) {
 
 func setupQuery(c *cli.Context) error {
 	if debug {
-		zapiCallbackOpts = append(zapiCallbackOpts, zapi.WithCallbackDebug(os.Stderr))
+		callbackOpts = append(callbackOpts, callback.WithDebug(os.Stderr))
 	}
 
 	if callbackNoValidate {
-		zapiCallbackOpts = append(zapiCallbackOpts, zapi.WithoutValidation())
+		callbackOpts = append(callbackOpts, callback.WithoutValidation())
+	}
+
+	if callbackNoKeyCache {
+		callbackOpts = append(callbackOpts, callback.WithoutCache())
 	}
 
 	if callbackURL != "" {
@@ -303,7 +315,7 @@ func runQuery(_ *cli.Context) error {
 		go func() {
 			_ = http.ListenAndServe(
 				queryListen,
-				zapi.CallbackHandler(callbackHandler(ctx), zapiCallbackOpts...),
+				callback.HTTPHandler(name, callbackHandler(ctx), callbackOpts...),
 			)
 		}()
 	}
@@ -497,8 +509,8 @@ func followRedirect(ctx context.Context, result *msg.QueryResult) ([]string, err
 	return reqIDs, nil
 }
 
-func callbackHandler(ctx context.Context) zapi.Handler {
-	return zapi.HandlerFunc(func(result *msg.QueryResult) {
+func callbackHandler(ctx context.Context) callback.Handler {
+	return callback.HandlerFunc(func(result *msg.QueryResult) {
 		if _, err := followRedirect(ctx, result); err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)
 		}

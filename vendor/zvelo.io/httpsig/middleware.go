@@ -1,6 +1,9 @@
 package httpsig
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+)
 
 // Middleware is an HTTP middleware that will call next only if the request's
 // HTTP signature is valid
@@ -11,6 +14,7 @@ func Middleware(t HeaderType, getter KeyGetter, next http.Handler) http.Handler 
 			if t == AuthorizationHeader {
 				code = http.StatusUnauthorized
 			}
+			log.Printf("HTTP Signature could not be verified: %s\n", err)
 			http.Error(w, err.Error(), code)
 			return
 		}

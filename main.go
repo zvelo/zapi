@@ -227,7 +227,7 @@ func setupTokenSource() {
 	if tokenSource != nil {
 		if accessToken == "" {
 			if !noCacheToken {
-				tokenSource = tokensource.FileCache(tokenSource, "zapi", cacheName, scopes...)
+				tokenSource = tokensource.FileCache(tokenSource, name, cacheName, scopes...)
 			}
 
 			tokenSource = oauth2.ReuseTokenSource(nil, tokenSource)
