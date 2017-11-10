@@ -1,3 +1,8 @@
+2017-11-10  Joshua Rubin <jrubin@zvelo.com>
+
+  * Start bug "queryWaitCallback doesn't check for content queries"
+  https://www.pivotaltracker.com/story/show/152607759
+
 2017-10-20  Bob Uhl <buhl@zvelo.com>
 
   * Start bug "Crash when polling"
