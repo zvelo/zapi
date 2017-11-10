@@ -357,6 +357,10 @@ func runQuery(_ *cli.Context) error {
 func query(ctx context.Context, queryReq *msg.QueryRequests) ([]string, error) {
 	start := time.Now()
 
+	if !queryNoPoll || callbackURL != "" {
+		resultWg.Add(len(queryReq.Url) + len(queryReq.Content))
+	}
+
 	if rest {
 		return queryREST(ctx, start, queryReq)
 	}
@@ -419,16 +423,20 @@ func printTraceID(traceID string) string {
 }
 
 func queryComplete(ctx context.Context, start time.Time, queryReq *msg.QueryRequests, traceID string, replies []*msg.QueryReply) []string {
-	w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
-	defer func() { _ = w.Flush() }()
+	var buf bytes.Buffer
+	w := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', 0)
 
-	printf := printfFunc(color.FgCyan, w)
+	defer func() {
+		_ = w.Flush()
+		printf := printfFunc(color.FgCyan, os.Stderr)
+		printf(buf.String())
+	}()
 
 	if traceID != "" {
-		printf("Trace ID:\t%s\n", printTraceID(traceID))
+		fmt.Fprintf(w, "Trace ID:\t%s\n", printTraceID(traceID))
 	}
 
-	printf("Query Duration:\t%s\n", time.Since(start))
+	fmt.Fprintf(w, "Query Duration:\t%s\n", time.Since(start))
 
 	var ret []string
 
@@ -461,14 +469,10 @@ func queryComplete(ctx context.Context, start time.Time, queryReq *msg.QueryRequ
 			continue
 		}
 
-		if !queryNoPoll || callbackURL != "" {
-			resultWg.Add(1)
-		}
-
 		ret = append(ret, reply.RequestId)
 
 		setReqIDData(reply.RequestId, u, start)
-		printf("%s:\t%s\n", u, reply.RequestId)
+		fmt.Fprintf(w, "%s:\t%s\n", u, reply.RequestId)
 	}
 
 	return ret
