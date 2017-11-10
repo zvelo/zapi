@@ -24,6 +24,7 @@ import (
 
 	"zvelo.io/go-zapi"
 	"zvelo.io/go-zapi/callback"
+	"zvelo.io/httpsig"
 	"zvelo.io/msg"
 	"zvelo.io/msg/mock"
 )
@@ -35,7 +36,7 @@ type reqData struct {
 }
 
 var (
-	callbackOpts           []callback.Option
+	keyGetter              httpsig.KeyGetter
 	callbackURL            string
 	callbackNoValidate     bool
 	callbackNoKeyCache     bool
@@ -186,16 +187,14 @@ func parseCategory(name string) (msg.Category, error) {
 }
 
 func setupQuery(c *cli.Context) error {
-	if debug {
-		callbackOpts = append(callbackOpts, callback.WithDebug(os.Stderr))
+	var keyCache callback.KeyCache
+
+	if !callbackNoKeyCache {
+		keyCache = callback.FileKeyCache(name)
 	}
 
-	if callbackNoValidate {
-		callbackOpts = append(callbackOpts, callback.WithoutValidation())
-	}
-
-	if callbackNoKeyCache {
-		callbackOpts = append(callbackOpts, callback.WithoutCache())
+	if !callbackNoValidate {
+		keyGetter = callback.KeyGetter(keyCache)
 	}
 
 	if callbackURL != "" {
@@ -319,7 +318,7 @@ func runQuery(_ *cli.Context) error {
 			fmt.Fprintf(os.Stderr, "listening for callbacks at %s\n", queryListen)
 			_ = http.ListenAndServe(
 				queryListen,
-				callback.HTTPHandler(name, callbackHandler(ctx), callbackOpts...),
+				callback.Middleware(keyGetter, callbackHandler(ctx)),
 			)
 		}()
 	}
@@ -548,7 +547,7 @@ func followRedirect(ctx context.Context, result *msg.QueryResult) []string {
 }
 
 func callbackHandler(ctx context.Context) callback.Handler {
-	return callback.HandlerFunc(func(result *msg.QueryResult) {
+	return callback.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request, result *msg.QueryResult) {
 		followRedirect(ctx, result)
 		resultCh <- queryResult{QueryResult: result}
 	})

@@ -4,14 +4,14 @@
 [[projects]]
   name = "cloud.google.com/go"
   packages = ["compute/metadata"]
-  revision = "eaddaf6dd7ee35fd3c2420c8d27478db176b0485"
-  version = "v0.15.0"
+  revision = "2d3a6656c17a60b0815b7e06ab0be04eacb6e613"
+  version = "v0.16.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/NYTimes/gziphandler"
   packages = ["."]
-  revision = "97ae7fbaf81620fe97840685304a78a306a39c64"
+  revision = "843330b8a375e6460183b08e030190b1a1eaea13"
 
 [[projects]]
   branch = "v2"
@@ -41,13 +41,13 @@
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-gateway"
   packages = ["runtime","runtime/internal","utilities"]
-  revision = "b0be3cdef0ed27e3c420795e2efbfe9c27e839cc"
+  revision = "93cf3eb9e9dfd4c70110a599d5ebecefc233d6f4"
 
 [[projects]]
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-opentracing"
   packages = ["go/otgrpc"]
-  revision = "a570af39704b9f3d4bb530d83192a99ea6337d5a"
+  revision = "01f8541d537215b2867e2745a1eb85c58c7c6b81"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -95,7 +95,7 @@
   branch = "master"
   name = "github.com/segmentio/ksuid"
   packages = ["."]
-  revision = "9cb615b023d376fe5590ade4f92e11a9482b69cb"
+  revision = "40772cbbe5cd30b5f46bdbeb24a7844c7f952250"
 
 [[projects]]
   name = "github.com/urfave/cli"
@@ -107,31 +107,31 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ed25519","ed25519/internal/edwards25519"]
-  revision = "bd6f299fb381e4c3393d1c4b1f0b94f5e77650c8"
+  revision = "6a293f2d4b14b8e6d3f0539e383f6d0d30fce3fd"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "c73622c77280266305273cb545f54516ced95b93"
+  revision = "a337091b0525af65de94df2eb7e98bd9962dcbe2"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/oauth2"
   packages = [".","clientcredentials","google","internal","jws","jwt"]
-  revision = "bb50c06baba3d0c76f9d125c0719093e315b5b44"
+  revision = "9ff8ebcc8e241d46f52ecc5bff0e5a2f2dbef402"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "95c6576299259db960f6c5b9b69ea52422860fce"
+  revision = "1e2299c37cc91a509f1b12369872d27be0ce98a6"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "3cfc6c0d6bf80d724d98c26c4822f4a35d37598e"
+  revision = "88f656faf3f37f690df1a32515b479415e1a6769"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -143,13 +143,13 @@
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/api/annotations","googleapis/rpc/status"]
-  revision = "f676e0f3ac6395ff1a529ae59a6670878a8371a6"
+  revision = "11c7f9e547da6db876260ce49ea7536985904c9b"
 
 [[projects]]
   name = "google.golang.org/grpc"
   packages = [".","balancer","codes","connectivity","credentials","credentials/oauth","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","resolver","stats","status","tap","transport"]
-  revision = "61d37c5d657a47e4404fd6823bd598341a2595de"
-  version = "v1.7.1"
+  revision = "5ffe3083946d5603a0578721101dc8165b1d5b5f"
+  version = "v1.7.2"
 
 [[projects]]
   name = "gopkg.in/square/go-jose.v2"
@@ -160,8 +160,8 @@
 [[projects]]
   name = "zvelo.io/go-zapi"
   packages = [".","callback","clientauth","internal/zvelo","tokensource","userauth"]
-  revision = "d8b77dcc01ef70816afb61920b2aa501565b735a"
-  version = "v1.4.0"
+  revision = "a9e9f8e8ad53206c46cdf7b32dc8c4f97391c002"
+  version = "v1.5.0"
 
 [[projects]]
   name = "zvelo.io/httpsig"
@@ -178,6 +178,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fed85b1473feccc158be7cb865fbc1f497ebe6e4bce1cddaf91efa1945c3163b"
+  inputs-digest = "9c4349ac47e84e36a6c027a7ab4fba71a1fe7cf08454124c0d849de58a93f863"
   solver-name = "gps-cdcl"
   solver-version = 1
