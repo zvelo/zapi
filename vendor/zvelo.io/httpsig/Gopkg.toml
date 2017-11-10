@@ -1,0 +1,12 @@
+[[constraint]]
+  name = "github.com/google/go-cmp"
+  version = "0.1.0"
+
+# 1.0.2 was too old
+[[constraint]]
+  name = "github.com/opentracing/opentracing-go"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/pkg/errors"
+  version = "0.8.0"

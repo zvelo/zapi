@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/urfave/cli"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-
-	"github.com/fatih/color"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli"
 
 	zapi "zvelo.io/go-zapi"
 	"zvelo.io/msg"
@@ -51,11 +49,7 @@ func setupPoll(c *cli.Context) error {
 		return errors.New("at least one request_id is required")
 	}
 
-	for _, reqID := range pollRequestIDs {
-		if reqID != "" {
-			reqIDs[reqID] = ""
-		}
-	}
+	go resultHandler()
 
 	return nil
 }
@@ -64,43 +58,69 @@ func poll(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	return pollReqIDs(ctx)
-}
+	resultWg.Add(len(pollRequestIDs))
 
-func pollReqIDs(ctx context.Context) error {
-	polling := map[string]string{}
-	for reqID, url := range reqIDs {
-		polling[reqID] = url
+	// do one poll immediately
+	if err := pollReqIDs(ctx, nil); err != nil {
+		return err
 	}
 
-	for len(polling) > 0 {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(pollInterval):
-		}
-
-		for reqID, url := range polling {
-			complete, err := pollReqID(ctx, reqID, url)
-
-			if err != nil {
-				return err
-			}
-
-			if complete {
-				delete(polling, reqID)
-			}
-		}
-
-		if pollOnce {
-			break
-		}
+	if pollOnce || len(pollRequestIDs) == 0 {
+		resultWg.Wait()
+		return nil
 	}
+
+	// now start polling on a timer
+	go pollHandler(ctx, nil)
+
+	resultWg.Wait()
 
 	return nil
 }
 
-func pollReqID(ctx context.Context, reqID, url string) (bool, error) {
+type resultCallback func(context.Context, *msg.QueryResult) ([]string, error)
+
+func pollHandler(ctx context.Context, fn resultCallback) {
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Fprintf(os.Stderr, "%s\n", ctx.Err())
+			return
+		case <-ticker.C:
+			if err := pollReqIDs(ctx, fn); err != nil {
+				fmt.Fprintf(os.Stderr, "%s\n", err)
+			}
+		}
+	}
+}
+
+func pollReqIDs(ctx context.Context, fn resultCallback) error {
+	var stillPending []string
+
+	for _, reqID := range pollRequestIDs {
+		complete, newReqIDs, err := pollReqID(ctx, reqID, fn)
+		if err != nil {
+			return err
+		}
+
+		stillPending = append(stillPending, newReqIDs...)
+
+		if !complete {
+			stillPending = append(stillPending, reqID)
+		}
+	}
+
+	pollRequestIDs = stillPending
+
+	return nil
+}
+
+func pollReqID(ctx context.Context, reqID string, fn resultCallback) (bool, []string, error) {
+	url := urlFromReqID(reqID, "")
+
 	if debug {
 		if url == "" {
 			fmt.Fprintf(os.Stderr, "polling for: %s\n", reqID)
@@ -120,29 +140,22 @@ func pollReqID(ctx context.Context, reqID, url string) (bool, error) {
 	}
 
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 
-	fmt.Println()
-
-	color.Set(color.FgCyan)
-
-	if traceID != "" {
-		fmt.Fprintf(os.Stderr, "Trace ID:           %s\n", traceID[:strings.Index(traceID, ":")])
+	var newReqIDs []string
+	if fn != nil {
+		if newReqIDs, err = fn(ctx, result); err != nil {
+			return false, nil, err
+		}
 	}
 
-	if err := queryResultTpl.ExecuteTemplate(os.Stdout, "QueryResult", result); err != nil {
-		color.Unset()
-		return false, err
+	resultCh <- queryResult{
+		traceID: traceID,
+		result:  result,
 	}
 
-	color.Unset()
-
-	if result == nil || result.QueryStatus == nil {
-		return false, nil
-	}
-
-	return result.QueryStatus.Complete, nil
+	return isComplete(result), newReqIDs, nil
 }
 
 func pollREST(ctx context.Context, reqID string) (result *msg.QueryResult, traceID string, err error) {

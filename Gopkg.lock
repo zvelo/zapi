@@ -68,10 +68,10 @@
   revision = "beff08417b04a91f0a7618b55786d63eec833b9f"
 
 [[projects]]
+  branch = "master"
   name = "github.com/opentracing/opentracing-go"
   packages = [".","ext","log"]
-  revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
-  version = "v1.0.2"
+  revision = "1361b9cd60be79c4c3a7fa9841b3c132e40066a7"
 
 [[projects]]
   branch = "master"
@@ -160,8 +160,14 @@
 [[projects]]
   name = "zvelo.io/go-zapi"
   packages = [".","clientauth","internal/zvelo","tokensource","userauth"]
-  revision = "a65367ed222040ee65af562dbfa2b06b1d96e66f"
-  version = "v1.2.0"
+  revision = "b3272a282c04b9c3816e78837fae7ccc13ea067c"
+  version = "v1.3.3"
+
+[[projects]]
+  name = "zvelo.io/httpsig"
+  packages = [".","digest"]
+  revision = "ff94b91910053559b7a51ffb08b72ed313d188f8"
+  version = "v1.1.2"
 
 [[projects]]
   name = "zvelo.io/msg"
@@ -172,6 +178,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0da0a355f2066e888a32d232bbb3cf5c786093c951f5456b8920bd5f0ec8a343"
+  inputs-digest = "ca2652edc5e950143545619128b40f6d8e8531c5a1c5899cb7bcd3cc8cce1285"
   solver-name = "gps-cdcl"
   solver-version = 1

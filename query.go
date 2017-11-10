@@ -10,8 +10,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"text/tabwriter"
-	"text/template"
 	"time"
 
 	"github.com/fatih/color"
@@ -28,22 +28,31 @@ import (
 )
 
 var (
-	queryReq           msg.QueryRequests
-	queryListen        string
-	queryPoll          bool
-	mockCategories     cli.StringSlice
-	mockMalicious      string
-	mockMaliciousClean bool
-	mockCompleteAfter  time.Duration
-	mockFetchCode      int
-	mockLocation       string
-	mockErrorCode      int
-	mockErrorMessage   string
-	mockContextOpts    []mock.ContextOption
-	contents           cli.StringSlice
+	zapiCallbackOpts       []zapi.CallbackOption
+	callbackURL            string
+	callbackNoValidate     bool
+	queryListen            string
+	queryNoPoll            bool
+	queryNoFollowRedirects bool
+	queryRedirectLimit     int
+	queryURLs              []string
+	queryURLContent        []*msg.QueryRequests_URLContent
+	mockCategories         cli.StringSlice
+	mockMalicious          string
+	mockMaliciousClean     bool
+	mockCompleteAfter      time.Duration
+	mockFetchCode          int
+	mockLocation           string
+	mockErrorCode          int
+	mockErrorMessage       string
+	mockContextOpts        []mock.ContextOption
+	contents               cli.StringSlice
 
-	queryCh = make(chan *msg.QueryResult)
-	reqIDs  = map[string]string{}
+	reqIDtoURLLock sync.RWMutex
+	reqIDtoURL     = map[string]string{}
+
+	redirectsLock sync.RWMutex
+	redirects     = map[string]string{}
 )
 
 func init() {
@@ -52,7 +61,7 @@ func init() {
 		Usage:     "query for a URL",
 		ArgsUsage: "url [url...]",
 		Before:    setupQuery,
-		Action:    query,
+		Action:    runQuery,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:        "listen",
@@ -64,14 +73,33 @@ func init() {
 			cli.StringFlag{
 				Name:        "callback",
 				EnvVar:      "ZVELO_QUERY_CALLBACK_URL",
-				Usage:       "publicly accessible base URL that routes to the address used by -listen flag",
-				Destination: &queryReq.Callback,
+				Usage:       "publicly accessible base URL that routes to the address used by -listen flag, disables polling",
+				Destination: &callbackURL,
 			},
 			cli.BoolFlag{
-				Name:        "poll",
-				EnvVar:      "ZVELO_QUERY_POLL",
-				Usage:       "poll for resutls",
-				Destination: &queryPoll,
+				Name:        "no-validate-callback",
+				EnvVar:      "ZVELO_NO_VALIDATE_CALLBACK",
+				Usage:       "do not validate callback signatures",
+				Destination: &callbackNoValidate,
+			},
+			cli.BoolFlag{
+				Name:        "no-poll",
+				EnvVar:      "ZVELO_QUERY_NO_POLL",
+				Usage:       "don't poll for resutls",
+				Destination: &queryNoPoll,
+			},
+			cli.BoolFlag{
+				Name:        "no-follow-redirects",
+				EnvVar:      "ZVELO_NO_FOLLOW_REDIRECTS",
+				Usage:       "if poll or callback is enabled, follow redirect responses",
+				Destination: &queryNoFollowRedirects,
+			},
+			cli.IntFlag{
+				Name:        "redirect-limit",
+				EnvVar:      "REDIRECT_LIMIT",
+				Usage:       "maximum number of redirects to follow for a single request",
+				Value:       10,
+				Destination: &queryRedirectLimit,
 			},
 			cli.StringSliceFlag{
 				Name:  "mock-category",
@@ -147,8 +175,16 @@ func parseCategory(name string) (msg.Category, error) {
 }
 
 func setupQuery(c *cli.Context) error {
-	if queryPoll && queryReq.Callback != "" {
-		return errors.New("poll and callback can't both be enabled")
+	if debug {
+		zapiCallbackOpts = append(zapiCallbackOpts, zapi.WithCallbackDebug(os.Stderr))
+	}
+
+	if callbackNoValidate {
+		zapiCallbackOpts = append(zapiCallbackOpts, zapi.WithoutValidation())
+	}
+
+	if callbackURL != "" {
+		queryNoPoll = true
 	}
 
 	var cats []msg.Category
@@ -203,7 +239,7 @@ func setupQuery(c *cli.Context) error {
 
 		// no '@' implies the data is provided directly
 		if c[0] != '@' {
-			queryReq.Content = append(queryReq.Content, &msg.QueryRequests_URLContent{
+			queryURLContent = append(queryURLContent, &msg.QueryRequests_URLContent{
 				Content: c,
 			})
 			continue
@@ -215,7 +251,7 @@ func setupQuery(c *cli.Context) error {
 			if _, err := buf.ReadFrom(os.Stdin); err != nil {
 				return err
 			}
-			queryReq.Content = append(queryReq.Content, &msg.QueryRequests_URLContent{
+			queryURLContent = append(queryURLContent, &msg.QueryRequests_URLContent{
 				Content: buf.String(),
 			})
 			continue
@@ -228,7 +264,7 @@ func setupQuery(c *cli.Context) error {
 			return err
 		}
 
-		queryReq.Content = append(queryReq.Content, &msg.QueryRequests_URLContent{
+		queryURLContent = append(queryURLContent, &msg.QueryRequests_URLContent{
 			Content: string(data),
 		})
 	}
@@ -242,61 +278,82 @@ func setupQuery(c *cli.Context) error {
 			u = "http://" + u
 		}
 
-		queryReq.Url = append(queryReq.Url, u)
+		queryURLs = append(queryURLs, u)
 	}
 
-	queryReq.Dataset = datasets
-
-	if queryReq.Callback != "" {
-		if !strings.Contains(queryReq.Callback, "://") {
-			queryReq.Callback = "http://" + queryReq.Callback
+	if callbackURL != "" {
+		if !strings.Contains(callbackURL, "://") {
+			callbackURL = "http://" + callbackURL
 		}
-
-		go func() {
-			_ = http.ListenAndServe(
-				queryListen,
-				zapi.CallbackHandler(callbackHandler(), zapiOpts...),
-			)
-		}()
 	}
 
 	return nil
 }
 
-func callbackHandler() zapi.Handler {
-	return zapi.HandlerFunc(func(in *msg.QueryResult) {
-		queryCh <- in
-	})
-}
-
-func query(_ *cli.Context) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+func runQuery(_ *cli.Context) error {
+	ctx := mock.QueryContext(context.Background(), mockContextOpts...)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	ctx = mock.QueryContext(ctx, mockContextOpts...)
+	if !queryNoPoll || callbackURL != "" {
+		go resultHandler()
+	}
 
+	if callbackURL != "" {
+		go func() {
+			_ = http.ListenAndServe(
+				queryListen,
+				zapi.CallbackHandler(callbackHandler(ctx), zapiCallbackOpts...),
+			)
+		}()
+	}
+
+	queryReq := msg.QueryRequests{
+		Callback: callbackURL,
+		Dataset:  datasets,
+		Url:      queryURLs,
+		Content:  queryURLContent,
+	}
+
+	var err error
+	if pollRequestIDs, err = query(ctx, &queryReq); err != nil {
+		return err
+	}
+
+	if !queryNoPoll {
+		go pollHandler(ctx, followRedirect)
+	}
+
+	if !queryNoPoll || callbackURL != "" {
+		resultWg.Wait()
+	}
+
+	return nil
+}
+
+func query(ctx context.Context, queryReq *msg.QueryRequests) ([]string, error) {
 	if rest {
-		return queryREST(ctx)
+		return queryREST(ctx, queryReq)
 	}
 
-	return queryGRPC(ctx)
+	return queryGRPC(ctx, queryReq)
 }
 
-func queryREST(ctx context.Context) error {
+func queryREST(ctx context.Context, queryReq *msg.QueryRequests) ([]string, error) {
 	var resp *http.Response
-	replies, err := restV1Client.Query(ctx, &queryReq, zapi.Response(&resp))
+	replies, err := restV1Client.Query(ctx, queryReq, zapi.Response(&resp))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return queryWait(ctx, resp.Header.Get("uber-trace-id"), replies.Reply)
+	return queryComplete(ctx, queryReq, resp.Header.Get("uber-trace-id"), replies.Reply)
 }
 
-func queryGRPC(ctx context.Context) error {
+func queryGRPC(ctx context.Context, queryReq *msg.QueryRequests) ([]string, error) {
 	var header metadata.MD
-	replies, err := grpcV1Client.Query(ctx, &queryReq, grpc.Header(&header))
+	replies, err := grpcV1Client.Query(ctx, queryReq, grpc.Header(&header))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var traceID string
@@ -304,75 +361,29 @@ func queryGRPC(ctx context.Context) error {
 		traceID = tids[0]
 	}
 
-	return queryWait(ctx, traceID, replies.Reply)
+	return queryComplete(ctx, queryReq, traceID, replies.Reply)
 }
 
-var queryResultTplStr = `
-{{define "DataSet" -}}
-{{- if .Categorization -}}
-Categories:         {{range .Categorization.Value}}{{.}} {{end}}
-{{end}}
+func urlFromReqID(reqID, def string) string {
+	reqIDtoURLLock.RLock()
 
-{{- if .Malicious -}}
-Malicious:          {{malicious .Malicious}}
-{{end}}
-
-{{- if .Echo}}Echo:               {{.Echo.Url}}
-{{end}}
-{{- end}}
-
-{{define "Status" -}}
-Error Code:         {{errorcode .Code}}
-{{if .Message}}Error Message:      {{.Message}}
-{{end}}
-{{- end}}
-
-{{define "QueryStatus" -}}
-Complete:           {{if .}}{{.Complete}}
-{{else}}false
-{{end}}
-{{- if . -}}
-{{if .FetchCode}}Fetch Status:       {{httpStatus .FetchCode}}
-{{end}}
-{{- if .Location}}Redirect Location:  {{.Location}}
-{{end}}
-{{- if .Error}}{{template "Status" .Error}}{{end}}
-{{- end}}
-{{- end}}
-
-{{define "QueryResult" -}}
-{{- if url .RequestId}}URL/Content:        {{url .RequestId}}
-{{end}}
-{{- if .RequestId}}Request ID:         {{.RequestId}}
-{{end}}
-{{- if .ResponseDataset}}{{template "DataSet" .ResponseDataset}}{{end}}
-{{- template "QueryStatus" .QueryStatus}}
-{{- end}}`
-
-var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.FuncMap{
-	"url": func(reqID string) string {
-		u, ok := reqIDs[reqID]
-		if !ok {
-			return "<UNKNOWN>"
-		}
+	if u, ok := reqIDtoURL[reqID]; ok {
+		reqIDtoURLLock.RUnlock()
 		return u
-	},
-	"malicious": func(m *msg.DataSet_Malicious) string {
-		if m.Verdict == msg.VERDICT_MALICIOUS {
-			return m.Category.String()
-		}
+	}
 
-		return m.Verdict.String()
-	},
-	"httpStatus": func(i int32) string {
-		return fmt.Sprintf("%s (%d)", http.StatusText(int(i)), i)
-	},
-	"errorcode": func(i int32) string {
-		return fmt.Sprintf("%s(%d)", codes.Code(i), i)
-	},
-}).Parse(queryResultTplStr))
+	reqIDtoURLLock.RUnlock()
 
-func queryWait(ctx context.Context, traceID string, replies []*msg.QueryReply) error {
+	return def
+}
+
+func setReqIDURL(reqID, url string) {
+	reqIDtoURLLock.Lock()
+	reqIDtoURL[reqID] = url
+	reqIDtoURLLock.Unlock()
+}
+
+func queryComplete(ctx context.Context, queryReq *msg.QueryRequests, traceID string, replies []*msg.QueryReply) ([]string, error) {
 	color.Set(color.FgCyan)
 
 	w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
@@ -380,6 +391,8 @@ func queryWait(ctx context.Context, traceID string, replies []*msg.QueryReply) e
 	if traceID != "" {
 		fmt.Fprintf(w, "Trace ID:\t%s\n", traceID[:strings.Index(traceID, ":")])
 	}
+
+	var ret []string
 
 	for i, reply := range replies {
 		var u string
@@ -390,7 +403,7 @@ func queryWait(ctx context.Context, traceID string, replies []*msg.QueryReply) e
 
 			p, err := url.Parse(u)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			if p.Host == "" {
@@ -409,53 +422,87 @@ func queryWait(ctx context.Context, traceID string, replies []*msg.QueryReply) e
 			continue
 		}
 
-		reqIDs[reply.RequestId] = u
+		if !queryNoPoll || callbackURL != "" {
+			resultWg.Add(1)
+		}
+
+		ret = append(ret, reply.RequestId)
+
+		setReqIDURL(reply.RequestId, u)
 		fmt.Fprintf(w, "%s:\t%s\n", u, reply.RequestId)
 	}
 
 	if err := w.Flush(); err != nil {
 		color.Unset()
-		return err
+		return nil, err
 	}
 
 	color.Unset()
 
-	if queryReq.Callback != "" {
-		return queryWaitCallback(ctx)
-	}
-
-	if queryPoll {
-		return pollReqIDs(ctx)
-	}
-
-	return nil
+	return ret, nil
 }
 
-func queryWaitCallback(ctx context.Context) error {
-	var numComplete int
+func countRedirects(reqID string) int {
+	redirectsLock.RLock()
+	defer redirectsLock.RUnlock()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case result := <-queryCh:
-			fmt.Fprintf(os.Stderr, "\nreceived callback\n")
-
-			fmt.Println()
-			color.Set(color.FgCyan)
-			if err := queryResultTpl.ExecuteTemplate(os.Stdout, "QueryResult", result); err != nil {
-				color.Unset()
-				return err
-			}
-			color.Unset()
-
-			if result.QueryStatus != nil && result.QueryStatus.Complete {
-				numComplete++
-
-				if numComplete == len(queryReq.Url) {
-					return nil
-				}
-			}
+	var ok bool
+	for ret := 0; ; ret++ {
+		if reqID, ok = redirects[reqID]; !ok {
+			return ret
 		}
 	}
+}
+
+func followRedirect(ctx context.Context, result *msg.QueryResult) ([]string, error) {
+	url := urlFromReqID(result.RequestId, "")
+
+	if queryNoFollowRedirects ||
+		result == nil ||
+		result.QueryStatus == nil ||
+		!result.QueryStatus.Complete ||
+		result.QueryStatus.Location == "" ||
+		result.QueryStatus.Location == url ||
+		result.QueryStatus.Error != nil ||
+		result.QueryStatus.FetchCode < 300 ||
+		result.QueryStatus.FetchCode >= 400 {
+		return nil, nil
+	}
+
+	num := countRedirects(result.RequestId) + 1
+	location := result.QueryStatus.Location
+
+	if num >= queryRedirectLimit {
+		fmt.Fprintf(os.Stderr, "\ntoo many redirects (%d): %s → %s\n", num, url, location)
+		return nil, nil
+	}
+
+	fmt.Fprintf(os.Stderr, "\nfollowing redirect #%d: %s → %s\n", num, url, location)
+
+	reqIDs, err := query(ctx, &msg.QueryRequests{
+		Callback: callbackURL,
+		Dataset:  datasets,
+		Url:      []string{location},
+	})
+
+	if err != nil || len(reqIDs) == 0 {
+		return nil, err
+	}
+
+	// There should be at most 1 reqID
+	redirectsLock.Lock()
+	redirects[reqIDs[0]] = result.RequestId
+	redirectsLock.Unlock()
+
+	return reqIDs, nil
+}
+
+func callbackHandler(ctx context.Context) zapi.Handler {
+	return zapi.HandlerFunc(func(result *msg.QueryResult) {
+		if _, err := followRedirect(ctx, result); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+		}
+
+		resultCh <- queryResult{result: result}
+	})
 }
