@@ -16,7 +16,7 @@
 
 [[constraint]]
   name = "zvelo.io/go-zapi"
-  version = "~1.5.1"
+  version = "~1.5.2"
 
 [[constraint]]
   name = "zvelo.io/msg"
