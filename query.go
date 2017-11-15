@@ -45,7 +45,7 @@ var (
 	queryNoFollowRedirects bool
 	queryRedirectLimit     int
 	queryURLs              []string
-	queryURLContent        []*msg.QueryRequests_URLContent
+	queryURLContent        []*msg.URLContent
 	mockCategories         cli.StringSlice
 	mockMalicious          string
 	mockMaliciousClean     bool
@@ -253,7 +253,7 @@ func setupQuery(c *cli.Context) error {
 
 		// no '@' implies the data is provided directly
 		if c[0] != '@' {
-			queryURLContent = append(queryURLContent, &msg.QueryRequests_URLContent{
+			queryURLContent = append(queryURLContent, &msg.URLContent{
 				Content: c,
 			})
 			continue
@@ -265,7 +265,7 @@ func setupQuery(c *cli.Context) error {
 			if _, err := buf.ReadFrom(os.Stdin); err != nil {
 				return err
 			}
-			queryURLContent = append(queryURLContent, &msg.QueryRequests_URLContent{
+			queryURLContent = append(queryURLContent, &msg.URLContent{
 				Content: buf.String(),
 			})
 			continue
@@ -278,7 +278,7 @@ func setupQuery(c *cli.Context) error {
 			return err
 		}
 
-		queryURLContent = append(queryURLContent, &msg.QueryRequests_URLContent{
+		queryURLContent = append(queryURLContent, &msg.URLContent{
 			Content: string(data),
 		})
 	}

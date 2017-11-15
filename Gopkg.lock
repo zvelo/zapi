@@ -8,12 +8,6 @@
   version = "v0.16.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/NYTimes/gziphandler"
-  packages = ["."]
-  revision = "843330b8a375e6460183b08e030190b1a1eaea13"
-
-[[projects]]
   branch = "v2"
   name = "github.com/coreos/go-oidc"
   packages = ["."]
@@ -34,14 +28,14 @@
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
-  packages = ["jsonpb","proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/struct","ptypes/timestamp"]
+  packages = ["jsonpb","proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/struct","ptypes/timestamp"]
   revision = "1643683e1b54a9e88ad26d98f81400c8c9d9f4f9"
 
 [[projects]]
-  branch = "master"
   name = "github.com/grpc-ecosystem/grpc-gateway"
   packages = ["runtime","runtime/internal","utilities"]
-  revision = "93cf3eb9e9dfd4c70110a599d5ebecefc233d6f4"
+  revision = "8cc3a55af3bcf171a1c23a90c4df9cf591706104"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
@@ -148,8 +142,8 @@
 [[projects]]
   name = "google.golang.org/grpc"
   packages = [".","balancer","codes","connectivity","credentials","credentials/oauth","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","resolver","stats","status","tap","transport"]
-  revision = "5ffe3083946d5603a0578721101dc8165b1d5b5f"
-  version = "v1.7.2"
+  revision = "401e0e00e4bb830a10496d64cd95e068c5bf50de"
+  version = "v1.7.3"
 
 [[projects]]
   name = "gopkg.in/square/go-jose.v2"
@@ -160,8 +154,8 @@
 [[projects]]
   name = "zvelo.io/go-zapi"
   packages = [".","callback","clientauth","internal/zvelo","tokensource","userauth"]
-  revision = "411502b96ebda53c2359a6ee25e3ba5f75e83224"
-  version = "v1.5.2"
+  revision = "b797a073f78352ff71f73258a8744fde801a3e88"
+  version = "v1.6.0"
 
 [[projects]]
   name = "zvelo.io/httpsig"
@@ -172,12 +166,12 @@
 [[projects]]
   name = "zvelo.io/msg"
   packages = [".","internal/static","mock"]
-  revision = "4ab86a800b49b0b24394b71c48c09bacb4bb25b6"
-  version = "v1.7.0"
+  revision = "4025b8fbbc9f7991649df6ebbaa3a84025b8b539"
+  version = "v1.9.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9fc4acfe5599ea68b8592f15c9cf7e344d61513bb9bb9ddbae7a547a23d160bd"
+  inputs-digest = "764ebbfee63a6591ff7cbb3769db4db3ddfe8636906719715a93854b653a593b"
   solver-name = "gps-cdcl"
   solver-version = 1
