@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
-	"zvelo.io/msg"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/internal/zvelo"
 	"zvelo.io/zapi/poller"
@@ -98,15 +97,10 @@ func (c *cmd) action(_ *cli.Context) error {
 	return ctx.Err()
 }
 
-func (c *cmd) Result(ctx context.Context, start time.Time, traceID, url string, result *msg.QueryResult) poller.Requests {
-	results.Print(results.Result{
-		PollStart:   start,
-		PollTraceID: traceID,
-		URL:         url,
-		QueryResult: result,
-	})
+func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Requests {
+	results.Print(result)
 
-	if zvelo.IsComplete(result) {
+	if zvelo.IsComplete(result.QueryResult) {
 		c.wg.Done()
 	}
 

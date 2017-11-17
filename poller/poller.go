@@ -16,16 +16,17 @@ import (
 	"zvelo.io/msg"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/internal/zvelo"
+	"zvelo.io/zapi/results"
 )
 
 type Handler interface {
-	Result(ctx context.Context, start time.Time, traceID, url string, result *msg.QueryResult) Requests
+	Result(context.Context, *results.Result) Requests
 }
 
-type HandlerFunc func(ctx context.Context, start time.Time, traceID, url string, result *msg.QueryResult) Requests
+type HandlerFunc func(context.Context, *results.Result) Requests
 
-func (f HandlerFunc) Result(ctx context.Context, start time.Time, traceID, url string, result *msg.QueryResult) Requests {
-	return f(ctx, start, traceID, url, result)
+func (f HandlerFunc) Result(ctx context.Context, results *results.Result) Requests {
+	return f(ctx, results)
 }
 
 var _ Handler = HandlerFunc(nil)
@@ -135,8 +136,12 @@ func (p *poller) pollRequest(ctx context.Context, reqID, url string, h Handler) 
 		pollFn = p.pollREST
 	}
 
-	start := time.Now()
-	result, traceID, err := pollFn(ctx, reqID)
+	result := results.Result{
+		PollStart: time.Now(),
+	}
+
+	var err error
+	result.QueryResult, result.PollTraceID, err = pollFn(ctx, reqID)
 
 	if err != nil {
 		return nil, err
@@ -144,11 +149,11 @@ func (p *poller) pollRequest(ctx context.Context, reqID, url string, h Handler) 
 
 	newRequests := Requests{}
 
-	if !zvelo.IsComplete(result) {
+	if !zvelo.IsComplete(result.QueryResult) {
 		newRequests[reqID] = url
 	}
 
-	for reqID, url := range h.Result(ctx, start, traceID, url, result) {
+	for reqID, url := range h.Result(ctx, &result) {
 		newRequests[reqID] = url
 	}
 

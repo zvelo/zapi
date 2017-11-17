@@ -18,7 +18,6 @@ import (
 
 type Result struct {
 	*msg.QueryResult
-	URL         string
 	PollTraceID string
 	PollStart   time.Time
 	Start       time.Time
@@ -55,7 +54,7 @@ Error Code:         {{errorcode .Code}}
 {{- end}}
 
 {{define "QueryResult" -}}
-{{- if url .}}URL/Content:        {{url .}}
+{{- if .Url}}URL/Content:        {{.Url}}
 {{end}}
 {{- if .RequestId}}Request ID:         {{.RequestId}}
 {{end}}
@@ -68,12 +67,6 @@ Error Code:         {{errorcode .Code}}
 {{- end}}`
 
 var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.FuncMap{
-	"url": func(result Result) string {
-		if result.URL != "" {
-			return result.URL
-		}
-		return "<UNKNOWN>"
-	},
 	"complete": func(result Result) string {
 		if !zvelo.IsComplete(result.QueryResult) {
 			return "false"
@@ -106,7 +99,7 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 	},
 }).Parse(queryResultTplStr))
 
-func Print(result Result) {
+func Print(result *Result) {
 	fmt.Fprintf(os.Stderr, "\nreceived result\n")
 
 	if traceID := result.PollTraceID; traceID != "" {

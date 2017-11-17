@@ -34,7 +34,6 @@ import (
 )
 
 type reqData struct {
-	url          string
 	start        time.Time
 	redirectFrom string
 }
@@ -482,18 +481,23 @@ func (c *queryCmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg
 	return c.queryComplete(ctx, start, queryReq, traceID, replies.Reply), nil
 }
 
-func (c *queryCmd) getReqIDData(reqID string) reqData {
+func (c *queryCmd) getReqIDStart(reqID string) time.Time {
 	c.reqIDDataLock.RLock()
 	defer c.reqIDDataLock.RUnlock()
-	return c.reqIDData[reqID]
+	return c.reqIDData[reqID].start
 }
 
-func (c *queryCmd) setReqIDData(reqID, url string, start time.Time) {
+func (c *queryCmd) setReqIDStart(reqID string, start time.Time) {
 	c.reqIDDataLock.Lock()
-	c.reqIDData[reqID] = reqData{
-		url:   url,
-		start: start,
-	}
+	c.reqIDData[reqID] = reqData{start: start}
+	c.reqIDDataLock.Unlock()
+}
+
+func (c *queryCmd) setReqIDRedirectFrom(reqID, fromReqID string) {
+	c.reqIDDataLock.Lock()
+	data := c.reqIDData[reqID]
+	data.redirectFrom = fromReqID
+	c.reqIDData[reqID] = data
 	c.reqIDDataLock.Unlock()
 }
 
@@ -546,7 +550,7 @@ func (c *queryCmd) queryComplete(ctx context.Context, start time.Time, queryReq 
 
 		ret[reply.RequestId] = u
 
-		c.setReqIDData(reply.RequestId, u, start)
+		c.setReqIDStart(reply.RequestId, start)
 		fmt.Fprintf(w, "%s:\t%s\n", u, reply.RequestId)
 	}
 
@@ -566,20 +570,16 @@ func (c *queryCmd) countRedirects(reqID string) int {
 	}
 }
 
-func (c *queryCmd) Result(ctx context.Context, pollStart time.Time, pollTraceID, url string, result *msg.QueryResult) poller.Requests {
-	if zvelo.IsComplete(result) {
+func (c *queryCmd) Result(ctx context.Context, result *results.Result) poller.Requests {
+	if zvelo.IsComplete(result.QueryResult) {
 		defer c.wg.Done()
 	}
 
-	results.Print(results.Result{
-		PollStart:   pollStart,
-		PollTraceID: pollTraceID,
-		URL:         url,
-		Start:       c.getReqIDData(result.RequestId).start,
-		QueryResult: result,
-	})
+	result.Start = c.getReqIDStart(result.RequestId)
 
-	if c.noFollowRedirects || !zvelo.IsComplete(result) {
+	results.Print(result)
+
+	if c.noFollowRedirects || !zvelo.IsComplete(result.QueryResult) {
 		return nil
 	}
 
@@ -591,7 +591,7 @@ func (c *queryCmd) Result(ctx context.Context, pollStart time.Time, pollTraceID,
 		return nil
 	}
 
-	if qs.Location == url {
+	if qs.Location == result.Url {
 		zvelo.Errorf("\nnot redirecting to the same url\n")
 		return nil
 	}
@@ -600,12 +600,12 @@ func (c *queryCmd) Result(ctx context.Context, pollStart time.Time, pollTraceID,
 	location := qs.Location
 
 	if num >= c.redirectLimit {
-		zvelo.Errorf("\ntoo many redirects (%d): %s → %s\n", num, url, location)
+		zvelo.Errorf("\ntoo many redirects (%d): %s → %s\n", num, result.Url, location)
 		return nil
 	}
 
 	printf := zvelo.PrintfFunc(color.FgYellow, os.Stderr)
-	printf("\nfollowing redirect #%d: %s → %s\n", num, url, location)
+	printf("\nfollowing redirect #%d: %s → %s\n", num, result.Url, location)
 
 	requests, err := c.query(ctx, &msg.QueryRequests{
 		Callback: c.callbackURL,
@@ -618,25 +618,16 @@ func (c *queryCmd) Result(ctx context.Context, pollStart time.Time, pollTraceID,
 		return nil
 	}
 
-	if len(requests) == 0 {
-		return nil
-	}
-
 	// There should be at most 1 reqID
-	c.reqIDDataLock.Lock()
 	for reqID := range requests {
-		data := c.reqIDData[reqID]
-		data.redirectFrom = result.RequestId
-		c.reqIDData[reqID] = data
+		c.setReqIDRedirectFrom(reqID, result.RequestId)
 	}
-	c.reqIDDataLock.Unlock()
 
 	return requests
 }
 
 func (c *queryCmd) callbackHandler(ctx context.Context) callback.Handler {
 	return callback.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request, result *msg.QueryResult) {
-		url := c.getReqIDData(result.RequestId).url
-		c.Result(ctx, time.Time{}, "", url, result)
+		c.Result(ctx, &results.Result{QueryResult: result})
 	})
 }
