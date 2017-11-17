@@ -216,7 +216,7 @@ func Command(appName string) cli.Command {
 		reqIDData: map[string]reqData{},
 	}
 
-	tokenSourcer := tokensourcer.New(appName, &c.debug)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
 	c.clients = clients.New(tokenSourcer, &c.debug)
 	c.poller = poller.New(&c.debug, &c.rest, c.clients)
 

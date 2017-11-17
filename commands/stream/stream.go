@@ -34,7 +34,7 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, "zvelo.stream")
 	c.clients = clients.New(tokenSourcer, &c.debug)
 
 	return cli.Command{

@@ -13,6 +13,7 @@ import (
 	"github.com/coreos/go-oidc"
 	"github.com/urfave/cli"
 
+	zapi "zvelo.io/go-zapi"
 	"zvelo.io/zapi/tokensourcer"
 )
 
@@ -91,7 +92,7 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	c.TokenSourcer = tokensourcer.New(appName, &c.debug)
+	c.TokenSourcer = tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
 
 	return cli.Command{
 		Name:   "token",

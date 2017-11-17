@@ -10,15 +10,10 @@ import (
 
 	"golang.org/x/oauth2"
 
-	zapi "zvelo.io/go-zapi"
 	"zvelo.io/go-zapi/clientauth"
 	"zvelo.io/go-zapi/tokensource"
 	"zvelo.io/go-zapi/userauth"
 )
-
-func defaultScopes() cli.StringSlice {
-	return strings.Fields(zapi.DefaultScopes)
-}
 
 type TokenSourcer interface {
 	Flags() []cli.Flag
@@ -26,11 +21,11 @@ type TokenSourcer interface {
 	Verifier(context.Context) (*oidc.IDTokenVerifier, error)
 }
 
-func New(appName string, debug *bool) TokenSourcer {
+func New(appName string, debug *bool, scope ...string) TokenSourcer {
 	return &data{
 		appName: appName,
 		debug:   debug,
-		scopes:  defaultScopes(),
+		scopes:  scope,
 	}
 }
 
@@ -115,7 +110,7 @@ func (d *data) Flags() []cli.Flag {
 		cli.StringSliceFlag{
 			Name:   "scope",
 			EnvVar: "ZVELO_SCOPES",
-			Usage:  "scopes to request with the token, may be repeated (default: " + strings.Join(defaultScopes(), ", ") + ")",
+			Usage:  "scopes to request with the token, may be repeated (default: " + strings.Join(d.scopes, ", ") + ")",
 			Value:  &d.scopes,
 		},
 	}

@@ -2,12 +2,14 @@ package poll
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
+	zapi "zvelo.io/go-zapi"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/internal/zvelo"
 	"zvelo.io/zapi/poller"
@@ -51,7 +53,7 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
 	c.clients = clients.New(tokenSourcer, &c.debug)
 	c.poller = poller.New(&c.debug, &c.rest, c.clients)
 
