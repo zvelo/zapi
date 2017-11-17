@@ -48,7 +48,7 @@ func init() {
 		poll.Command(appName),
 		query.Command(appName),
 		suggest.Command(),
-		stream.Command(),
+		stream.Command(appName),
 		token.Command(appName),
 	)
 
