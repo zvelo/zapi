@@ -1,4 +1,4 @@
-package main
+package poller
 
 import (
 	"context"
@@ -26,10 +26,10 @@ func TestPollREST(t *testing.T) {
 		}
 	}()
 
-	restV1Client = zapi.NewRESTv1(nil, zapi.WithAddr(l.Addr().String()))
+	restV1Client := zapi.NewRESTv1(nil, zapi.WithAddr(l.Addr().String()))
 
 	// This should fail due to a TLS certificate error
-	if _, _, err = pollREST(context.Background(), "22d29585-0204-406f-9941-ed15340c4c0f"); err == nil {
+	if _, _, err = pollREST(context.Background(), restV1Client, "22d29585-0204-406f-9941-ed15340c4c0f"); err == nil {
 		t.Error("request which should have failed … succeeded instead")
 	}
 }

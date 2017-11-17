@@ -1,4 +1,4 @@
-package main
+package complete
 
 import (
 	"fmt"
@@ -11,28 +11,30 @@ import (
 	"github.com/urfave/cli"
 )
 
-const completionFlagName = "compgen"
+const FlagName = "compgen"
 
-func init() {
-	cli.BashCompletionFlag = cli.BoolFlag{
-		Name:   completionFlagName,
-		Hidden: true,
+func Command(appName string) cli.Command {
+	c := cmd{
+		AppName:  appName,
+		FlagName: FlagName,
+		Bash:     bash,
+		Zsh:      zsh,
 	}
 
-	app.Commands = append(app.Commands, cli.Command{
+	return cli.Command{
 		Name:        "complete",
 		Usage:       "generate autocomplete script",
-		Description: "eval \"$(" + name + " complete)\"",
-		Before:      co.setup,
-		Action:      co.run,
-	})
+		Description: "eval \"$(" + appName + " complete)\"",
+		Before:      c.setup,
+		Action:      c.run,
+	}
 }
 
-func bashComplete(c *cli.Context) {
+func Bash(c *cli.Context) {
 	complete(c, c.App.Commands, c.App.Flags)
 }
 
-func bashCommandComplete(cmd cli.Command) cli.BashCompleteFunc {
+func BashCommand(cmd cli.Command) cli.BashCompleteFunc {
 	return func(c *cli.Context) {
 		complete(c, cmd.Subcommands, cmd.Flags)
 	}
@@ -51,7 +53,7 @@ func complete(c *cli.Context, cmds []cli.Command, flags []cli.Flag) {
 
 	for _, flag := range flags {
 		for _, name := range strings.Split(flag.GetName(), ",") {
-			if name == completionFlagName {
+			if name == FlagName {
 				continue
 			}
 
@@ -73,7 +75,7 @@ const (
 	zsh
 )
 
-type cc struct {
+type cmd struct {
 	AppName  string
 	FlagName string
 	Shell    shell
@@ -81,27 +83,20 @@ type cc struct {
 	Zsh      shell
 }
 
-var co = cc{
-	AppName:  name,
-	FlagName: completionFlagName,
-	Bash:     bash,
-	Zsh:      zsh,
-}
-
-func (co *cc) setup(c *cli.Context) error {
+func (c *cmd) setup(_ *cli.Context) error {
 	switch shell := filepath.Base(os.Getenv("SHELL")); shell {
 	case "bash":
-		co.Shell = bash
+		c.Shell = bash
 	case "zsh":
-		co.Shell = zsh
+		c.Shell = zsh
 	default:
 		return errors.Errorf("unsupported shell: %s", shell)
 	}
 	return nil
 }
 
-func (co *cc) run(c *cli.Context) error {
-	return completeTpl.Execute(os.Stdout, co)
+func (c *cmd) run(_ *cli.Context) error {
+	return completeTpl.Execute(os.Stdout, c)
 }
 
 var completeTpl = template.Must(template.New("shellFunc").Parse(shellFunc))

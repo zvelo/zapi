@@ -1,31 +1,28 @@
-package main
+package results
 
 import (
 	"bytes"
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
-	"sync"
 	"text/template"
 	"time"
 
 	"github.com/fatih/color"
+
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
 	"zvelo.io/msg"
+	"zvelo.io/zapi/internal/zvelo"
 )
 
-type queryResult struct {
+type Result struct {
 	*msg.QueryResult
-	pollTraceID string
-	pollStart   time.Time
+	URL         string
+	PollTraceID string
+	PollStart   time.Time
+	Start       time.Time
 }
-
-var (
-	resultWg sync.WaitGroup
-	resultCh = make(chan queryResult)
-)
 
 var queryResultTplStr = `
 {{define "DataSet" -}}
@@ -58,7 +55,7 @@ Error Code:         {{errorcode .Code}}
 {{- end}}
 
 {{define "QueryResult" -}}
-{{- if url .RequestId}}URL/Content:        {{url .RequestId}}
+{{- if url .}}URL/Content:        {{url .}}
 {{end}}
 {{- if .RequestId}}Request ID:         {{.RequestId}}
 {{end}}
@@ -71,23 +68,26 @@ Error Code:         {{errorcode .Code}}
 {{- end}}`
 
 var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.FuncMap{
-	"url": func(reqID string) string {
-		return getReqIDData(reqID, "<UNKNOWN>").url
+	"url": func(result Result) string {
+		if result.URL != "" {
+			return result.URL
+		}
+		return "<UNKNOWN>"
 	},
-	"complete": func(result queryResult) string {
-		if !isComplete(result.QueryResult) {
+	"complete": func(result Result) string {
+		if !zvelo.IsComplete(result.QueryResult) {
 			return "false"
 		}
 
-		if data := getReqIDData(result.RequestId, ""); data.start != (time.Time{}) {
-			return time.Since(data.start).String()
+		if result.Start != (time.Time{}) {
+			return time.Since(result.Start).String()
 		}
 
 		return "false"
 	},
-	"poll": func(result queryResult) string {
-		if result.pollStart != (time.Time{}) {
-			return time.Since(result.pollStart).String()
+	"poll": func(result Result) string {
+		if result.PollStart != (time.Time{}) {
+			return time.Since(result.PollStart).String()
 		}
 		return ""
 	},
@@ -106,38 +106,19 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 	},
 }).Parse(queryResultTplStr))
 
-func isComplete(result *msg.QueryResult) bool {
-	if result == nil || result.QueryStatus == nil {
-		return false
+func Print(result Result) {
+	fmt.Fprintf(os.Stderr, "\nreceived result\n")
+
+	if traceID := result.PollTraceID; traceID != "" {
+		printf := zvelo.PrintfFunc(color.FgCyan, os.Stderr)
+		printf("Trace ID:           %s\n", zvelo.TraceIDString(traceID))
 	}
 
-	if status.ErrorProto(result.QueryStatus.Error) != nil {
-		// there was an error, complete is implied
-		return true
+	var buf bytes.Buffer
+	if err := queryResultTpl.ExecuteTemplate(&buf, "QueryResult", result); err != nil {
+		zvelo.Errorf("%s\n", err)
 	}
 
-	return result.QueryStatus.Complete
-}
-
-func resultHandler() {
-	for result := range resultCh {
-		fmt.Fprintf(os.Stderr, "\nreceived result\n")
-
-		if traceID := result.pollTraceID; traceID != "" {
-			printf := printfFunc(color.FgCyan, os.Stderr)
-			printf("Trace ID:           %s\n", traceID[:strings.Index(traceID, ":")])
-		}
-
-		var buf bytes.Buffer
-		if err := queryResultTpl.ExecuteTemplate(&buf, "QueryResult", result); err != nil {
-			errorf("%s\n", err)
-		}
-
-		printf := printfFunc(color.FgCyan, os.Stdout)
-		printf(buf.String())
-
-		if isComplete(result.QueryResult) {
-			resultWg.Done()
-		}
-	}
+	printf := zvelo.PrintfFunc(color.FgCyan, os.Stdout)
+	printf(buf.String())
 }
