@@ -2,6 +2,7 @@ package stream
 
 import (
 	"context"
+	"io"
 
 	"github.com/urfave/cli"
 	"zvelo.io/msg"
@@ -86,6 +87,9 @@ func handle(stream streamClient) error {
 	for {
 		result, err := stream.Recv()
 		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
 			return err
 		}
 

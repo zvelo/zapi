@@ -13,6 +13,10 @@ import (
 
 const FlagName = "compgen"
 
+func init() {
+	cli.BashCompletionFlag = cli.BoolFlag{Name: FlagName}
+}
+
 func Command(appName string) cli.Command {
 	c := cmd{
 		AppName:  appName,
@@ -34,10 +38,11 @@ func Bash(c *cli.Context) {
 	complete(c, c.App.Commands, c.App.Flags)
 }
 
-func BashCommand(cmd cli.Command) cli.BashCompleteFunc {
-	return func(c *cli.Context) {
+func BashCommand(cmd cli.Command) cli.Command {
+	cmd.BashComplete = func(c *cli.Context) {
 		complete(c, cmd.Subcommands, cmd.Flags)
 	}
+	return cmd
 }
 
 func complete(c *cli.Context, cmds []cli.Command, flags []cli.Flag) {

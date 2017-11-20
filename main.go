@@ -27,11 +27,6 @@ var (
 )
 
 func init() {
-	cli.BashCompletionFlag = cli.BoolFlag{
-		Name:   complete.FlagName,
-		Hidden: true,
-	}
-
 	app.Name = appName
 	app.Version = fmt.Sprintf("%s (%s)", version, runtime.Version())
 	app.Usage = "client utility for zvelo api"
@@ -42,19 +37,15 @@ func init() {
 	}
 
 	app.Commands = append(app.Commands,
-		complete.Command(appName),
-		graphql.Command(appName),
-		mock.Command(),
-		poll.Command(appName),
-		query.Command(appName),
-		suggest.Command(),
-		stream.Command(appName),
-		token.Command(appName),
+		complete.BashCommand(complete.Command(appName)),
+		complete.BashCommand(graphql.Command(appName)),
+		complete.BashCommand(mock.Command()),
+		complete.BashCommand(poll.Command(appName)),
+		complete.BashCommand(query.Command(appName)),
+		complete.BashCommand(suggest.Command()),
+		complete.BashCommand(stream.Command(appName)),
+		complete.BashCommand(token.Command(appName)),
 	)
-
-	for _, cmd := range app.Commands {
-		cmd.BashComplete = complete.BashCommand(cmd)
-	}
 }
 
 func main() {
