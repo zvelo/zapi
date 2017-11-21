@@ -1,10 +1,6 @@
-2017-11-21  Luke <lkingland@zvelo.com>
-
-  * Start feature "support alternate datasets"
-  https://www.pivotaltracker.com/story/show/153062172
-
 2017-10-20  Bob Uhl <buhl@zvelo.com>
 
   * Start bug "Crash when polling"
   https://www.pivotaltracker.com/story/show/152151421
   https://github.com/zvelo/zapi/pull/1
+  https://github.com/zvelo/zapi/pull/3
