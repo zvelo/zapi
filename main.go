@@ -42,7 +42,7 @@ func init() {
 		complete.BashCommand(mock.Command()),
 		complete.BashCommand(poll.Command(appName)),
 		complete.BashCommand(query.Command(appName)),
-		complete.BashCommand(suggest.Command()),
+		complete.BashCommand(suggest.Command(appName)),
 		complete.BashCommand(stream.Command(appName)),
 		complete.BashCommand(token.Command(appName)),
 	)
