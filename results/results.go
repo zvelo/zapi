@@ -76,7 +76,7 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 			return time.Since(result.Start).String()
 		}
 
-		return "false"
+		return "true"
 	},
 	"poll": func(result Result) string {
 		if result.PollStart != (time.Time{}) {
