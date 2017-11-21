@@ -35,24 +35,40 @@ func Command(appName string) cli.Command {
 }
 
 func Bash(c *cli.Context) {
-	complete(c, c.App.Commands, c.App.Flags)
+	complete(c, c.App.Commands, c.App.VisibleFlags())
 }
 
 func BashCommand(cmd cli.Command) cli.Command {
 	cmd.BashComplete = func(c *cli.Context) {
-		complete(c, cmd.Subcommands, cmd.Flags)
+		complete(c, cmd.Subcommands, cmd.VisibleFlags())
 	}
 	return cmd
 }
 
+func flagUsage(flag cli.Flag) string {
+	str := flag.String()
+	if i := strings.Index(str, "\t"); i >= 0 && len(str) > i+1 {
+		return str[i+1:]
+	}
+	return ""
+}
+
 func complete(c *cli.Context, cmds []cli.Command, flags []cli.Flag) {
+	var shell shell
+	_ = setShell(&shell)
+
 	for _, command := range cmds {
 		if command.Hidden {
 			continue
 		}
 
 		for _, name := range command.Names() {
-			fmt.Println(name)
+			switch shell {
+			case zsh:
+				fmt.Printf("%s:%s\n", name, command.Usage)
+			default:
+				fmt.Println(name)
+			}
 		}
 	}
 
@@ -64,10 +80,18 @@ func complete(c *cli.Context, cmds []cli.Command, flags []cli.Flag) {
 
 			switch name = strings.TrimSpace(name); len(name) {
 			case 0:
+				continue
 			case 1:
-				fmt.Println("-" + name)
+				name = "-" + name
 			default:
-				fmt.Println("--" + name)
+				name = "--" + name
+			}
+
+			switch shell {
+			case zsh:
+				fmt.Printf("%s:%s\n", name, flagUsage(flag))
+			default:
+				fmt.Println(name)
 			}
 		}
 	}
@@ -88,26 +112,33 @@ type cmd struct {
 	Zsh      shell
 }
 
-func (c *cmd) setup(_ *cli.Context) error {
+func setShell(s *shell) error {
 	switch shell := filepath.Base(os.Getenv("SHELL")); shell {
 	case "bash":
-		c.Shell = bash
+		*s = bash
 	case "zsh":
-		c.Shell = zsh
+		*s = zsh
 	default:
 		return errors.Errorf("unsupported shell: %s", shell)
 	}
 	return nil
 }
 
-func (c *cmd) run(_ *cli.Context) error {
-	return completeTpl.Execute(os.Stdout, c)
+func (c *cmd) setup(_ *cli.Context) error {
+	return setShell(&c.Shell)
 }
 
-var completeTpl = template.Must(template.New("shellFunc").Parse(shellFunc))
+func (c *cmd) run(_ *cli.Context) error {
+	if c.Shell == bash {
+		return bashCompleteTpl.Execute(os.Stdout, c)
+	}
 
-var shellFunc = `{{ if eq .Shell .Bash }}#!/bin/bash{{ end }}{{ if eq .Shell .Zsh }}autoload -U compinit && compinit
-autoload -U bashcompinit && bashcompinit{{ end }}
+	return zshCompleteTpl.Execute(os.Stdout, c)
+}
+
+var bashCompleteTpl = template.Must(template.New("bashShellFunc").Parse(bashShellFunc))
+
+var bashShellFunc = `#!/bin/bash
 
 _{{ .AppName }}_autocomplete() {
      local cur opts base
@@ -118,5 +149,19 @@ _{{ .AppName }}_autocomplete() {
      return 0
  }
 
- complete -F _{{ .AppName }}_autocomplete {{ .AppName }}
+complete -F _{{ .AppName }}_autocomplete {{ .AppName }}
+`
+
+var zshCompleteTpl = template.Must(template.New("zshShellFunc").Parse(zshShellFunc))
+
+var zshShellFunc = `_{{ .AppName }}_autocomplete() {
+  local -a opts
+  opts=("${(@f)$(${words[@]:0:#words[@]-1} --{{ .FlagName }})}")
+
+  _describe 'values' opts
+
+  return
+}
+
+compdef _{{ .AppName }}_autocomplete {{ .AppName }}
 `
