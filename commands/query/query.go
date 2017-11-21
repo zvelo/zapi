@@ -571,23 +571,27 @@ func (c *queryCmd) countRedirects(reqID string) int {
 }
 
 func (c *queryCmd) Result(ctx context.Context, result *results.Result) poller.Requests {
-	if zvelo.IsComplete(result.QueryResult) {
+	complete := zvelo.IsComplete(result.QueryResult)
+
+	if complete {
 		defer c.wg.Done()
 	}
 
 	result.Start = c.getReqIDStart(result.RequestId)
 
-	results.Print(result)
+	qs := result.QueryStatus
 
-	if c.noFollowRedirects || !zvelo.IsComplete(result.QueryResult) {
+	isRedirect := qs.Location != "" && qs.FetchCode >= 300 && qs.FetchCode < 400
+
+	if c.debug || c.noFollowRedirects || (complete && !isRedirect) {
+		results.Print(result)
+	}
+
+	if c.noFollowRedirects || !complete {
 		return nil
 	}
 
-	qs := result.QueryStatus
-
-	if qs.Location == "" ||
-		qs.FetchCode < 300 ||
-		qs.FetchCode > 399 {
+	if !isRedirect {
 		return nil
 	}
 

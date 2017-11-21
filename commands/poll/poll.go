@@ -100,10 +100,12 @@ func (c *cmd) action(_ *cli.Context) error {
 }
 
 func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Requests {
-	results.Print(result)
+	if complete := zvelo.IsComplete(result.QueryResult); complete || c.debug {
+		results.Print(result)
 
-	if zvelo.IsComplete(result.QueryResult) {
-		c.wg.Done()
+		if complete {
+			c.wg.Done()
+		}
 	}
 
 	return nil
