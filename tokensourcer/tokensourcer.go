@@ -17,15 +17,15 @@ import (
 
 type TokenSourcer interface {
 	Flags() []cli.Flag
-	TokenSource() oauth2.TokenSource
-	Verifier(context.Context) (*oidc.IDTokenVerifier, error)
+	TokenSource(*cli.Context) oauth2.TokenSource
+	Verifier(context.Context, *cli.Context) (*oidc.IDTokenVerifier, error)
 }
 
 func New(appName string, debug *bool, scope ...string) TokenSourcer {
 	return &data{
-		appName: appName,
-		debug:   debug,
-		scopes:  scope,
+		appName:       appName,
+		debug:         debug,
+		defaultScopes: scope,
 	}
 }
 
@@ -39,7 +39,6 @@ type data struct {
 	debug   *bool
 
 	// from flags
-	scopes                 cli.StringSlice
 	accessToken            string
 	mockNoCredentials      bool
 	useUserCredentials     bool
@@ -48,6 +47,8 @@ type data struct {
 	noOpenBrowser          bool
 	clientID, clientSecret string
 	noCacheToken           bool
+
+	defaultScopes []string
 }
 
 func (d *data) Flags() []cli.Flag {
@@ -110,13 +111,21 @@ func (d *data) Flags() []cli.Flag {
 		cli.StringSliceFlag{
 			Name:   "scope",
 			EnvVar: "ZVELO_SCOPES",
-			Usage:  "scopes to request with the token, may be repeated (default: " + strings.Join(d.scopes, ", ") + ")",
-			Value:  &d.scopes,
+			Usage:  "scopes to request with the token, may be repeated (default: " + strings.Join(d.defaultScopes, ", ") + ")",
 		},
 	}
 }
 
-func (d *data) TokenSource() oauth2.TokenSource {
+func (d *data) scopes(cli *cli.Context) []string {
+	if scopes := cli.StringSlice("scope"); len(scopes) > 0 {
+		return scopes
+	}
+	return d.defaultScopes
+}
+
+func (d *data) TokenSource(cli *cli.Context) oauth2.TokenSource {
+	scopes := d.scopes(cli)
+
 	if d.tokenSource != nil || d.mockNoCredentials {
 		return nil
 	}
@@ -131,7 +140,7 @@ func (d *data) TokenSource() oauth2.TokenSource {
 		cacheName = "user"
 		userOpts := []userauth.Option{
 			userauth.WithRedirectURL(d.redirectURL),
-			userauth.WithScope(d.scopes...),
+			userauth.WithScope(scopes...),
 			userauth.WithCallbackAddr(d.callbackAddr),
 		}
 
@@ -150,14 +159,14 @@ func (d *data) TokenSource() oauth2.TokenSource {
 			context.Background(),
 			d.clientID,
 			d.clientSecret,
-			clientauth.WithScope(d.scopes...),
+			clientauth.WithScope(scopes...),
 		)
 	}
 
 	if d.tokenSource != nil {
 		if d.accessToken == "" {
 			if !d.noCacheToken {
-				d.tokenSource = tokensource.FileCache(d.tokenSource, d.appName, cacheName, d.scopes...)
+				d.tokenSource = tokensource.FileCache(d.tokenSource, d.appName, cacheName, scopes...)
 			}
 
 			d.tokenSource = oauth2.ReuseTokenSource(nil, d.tokenSource)
@@ -171,12 +180,14 @@ func (d *data) TokenSource() oauth2.TokenSource {
 	return d.tokenSource
 }
 
-func (d *data) Verifier(ctx context.Context) (*oidc.IDTokenVerifier, error) {
+func (d *data) Verifier(ctx context.Context, cli *cli.Context) (*oidc.IDTokenVerifier, error) {
+	scopes := d.scopes(cli)
+
 	if d.verifier != nil {
 		return d.verifier, nil
 	}
 
-	for _, s := range d.scopes {
+	for _, s := range scopes {
 		if s != "openid" {
 			continue
 		}

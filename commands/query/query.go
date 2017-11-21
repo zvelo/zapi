@@ -42,11 +42,11 @@ func defaultDatasets() []string {
 	return []string{msg.CATEGORIZATION.String()}
 }
 
-type queryCmd struct {
+type cmd struct {
+	context            *cli.Context
 	appName            string
 	wg                 sync.WaitGroup
 	datasets           []msg.DataSetType
-	datasetStrings     cli.StringSlice
 	debug, rest        bool
 	timeout            time.Duration
 	clients            clients.Clients
@@ -76,7 +76,7 @@ type queryCmd struct {
 	reqIDData     map[string]reqData
 }
 
-func (c *queryCmd) Flags() []cli.Flag {
+func (c *cmd) Flags() []cli.Flag {
 	flags := append(c.clients.Flags(), c.poller.Flags()...)
 	return append(flags,
 		cli.BoolFlag{
@@ -193,7 +193,6 @@ func (c *queryCmd) Flags() []cli.Flag {
 			Name:   "dataset",
 			EnvVar: "ZVELO_DATASETS",
 			Usage:  "list of datasets to retrieve, may be repeated (available options: " + strings.Join(availableDS(), ", ") + ", default: " + strings.Join(defaultDatasets(), ", ") + ")",
-			Value:  &c.datasetStrings,
 		},
 	)
 }
@@ -211,7 +210,7 @@ func availableDS() []string {
 }
 
 func Command(appName string) cli.Command {
-	c := queryCmd{
+	c := cmd{
 		appName:   appName,
 		reqIDData: map[string]reqData{},
 	}
@@ -230,7 +229,7 @@ func Command(appName string) cli.Command {
 	}
 }
 
-func (c *queryCmd) setupMock() error {
+func (c *cmd) setupMock() error {
 	var cats []msg.Category
 	for _, catName := range c.mockCategories {
 		cat := msg.ParseCategory(catName)
@@ -275,7 +274,7 @@ func (c *queryCmd) setupMock() error {
 	return nil
 }
 
-func (c *queryCmd) setupContents() error {
+func (c *cmd) setupContents() error {
 	for _, content := range c.contents {
 		if len(content) == 0 || content == "@" {
 			continue
@@ -316,12 +315,14 @@ func (c *queryCmd) setupContents() error {
 	return nil
 }
 
-func (c *queryCmd) setupDataSets() error {
-	if len(c.datasetStrings) == 0 {
-		c.datasetStrings = defaultDatasets()
+func (c *cmd) setupDataSets(cli *cli.Context) error {
+	datasetStrings := cli.StringSlice("dataset")
+
+	if len(datasetStrings) == 0 {
+		datasetStrings = defaultDatasets()
 	}
 
-	for _, dsName := range c.datasetStrings {
+	for _, dsName := range datasetStrings {
 		dsName = strings.TrimSpace(dsName)
 
 		dst, err := msg.NewDataSetType(dsName)
@@ -340,8 +341,8 @@ func (c *queryCmd) setupDataSets() error {
 	return nil
 }
 
-func (c *queryCmd) setup(cli *cli.Context) error {
-	if err := c.setupDataSets(); err != nil {
+func (c *cmd) setup(cli *cli.Context) error {
+	if err := c.setupDataSets(cli); err != nil {
 		return err
 	}
 
@@ -392,7 +393,9 @@ func (c *queryCmd) setup(cli *cli.Context) error {
 	return nil
 }
 
-func (c *queryCmd) action(_ *cli.Context) error {
+func (c *cmd) action(cli *cli.Context) error {
+	c.context = cli
+
 	ctx := mock.QueryContext(context.Background(), c.mockContextOpts...)
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
@@ -420,7 +423,7 @@ func (c *queryCmd) action(_ *cli.Context) error {
 	}
 
 	if !c.noPoll {
-		go c.poller.Poll(ctx, requests, c)
+		go c.poller.Poll(ctx, c.context, requests, c)
 	}
 
 	if !c.noPoll || c.callbackURL != "" {
@@ -437,7 +440,7 @@ func (c *queryCmd) action(_ *cli.Context) error {
 	return nil
 }
 
-func (c *queryCmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poller.Requests, error) {
+func (c *cmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poller.Requests, error) {
 	start := time.Now()
 
 	if !c.noPoll || c.callbackURL != "" {
@@ -451,9 +454,9 @@ func (c *queryCmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poll
 	return c.queryGRPC(ctx, start, queryReq)
 }
 
-func (c *queryCmd) queryREST(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
+func (c *cmd) queryREST(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
 	var resp *http.Response
-	replies, err := c.clients.RESTv1().Query(ctx, queryReq, zapi.Response(&resp))
+	replies, err := c.clients.RESTv1(c.context).Query(ctx, queryReq, zapi.Response(&resp))
 	if err != nil {
 		return nil, err
 	}
@@ -461,8 +464,8 @@ func (c *queryCmd) queryREST(ctx context.Context, start time.Time, queryReq *msg
 	return c.queryComplete(ctx, start, queryReq, resp.Header.Get("uber-trace-id"), replies.Reply), nil
 }
 
-func (c *queryCmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
-	client, err := c.clients.GRPCv1(ctx)
+func (c *cmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
+	client, err := c.clients.GRPCv1(ctx, c.context)
 	if err != nil {
 		return nil, err
 	}
@@ -481,19 +484,19 @@ func (c *queryCmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg
 	return c.queryComplete(ctx, start, queryReq, traceID, replies.Reply), nil
 }
 
-func (c *queryCmd) getReqIDStart(reqID string) time.Time {
+func (c *cmd) getReqIDStart(reqID string) time.Time {
 	c.reqIDDataLock.RLock()
 	defer c.reqIDDataLock.RUnlock()
 	return c.reqIDData[reqID].start
 }
 
-func (c *queryCmd) setReqIDStart(reqID string, start time.Time) {
+func (c *cmd) setReqIDStart(reqID string, start time.Time) {
 	c.reqIDDataLock.Lock()
 	c.reqIDData[reqID] = reqData{start: start}
 	c.reqIDDataLock.Unlock()
 }
 
-func (c *queryCmd) setReqIDRedirectFrom(reqID, fromReqID string) {
+func (c *cmd) setReqIDRedirectFrom(reqID, fromReqID string) {
 	c.reqIDDataLock.Lock()
 	data := c.reqIDData[reqID]
 	data.redirectFrom = fromReqID
@@ -501,7 +504,7 @@ func (c *queryCmd) setReqIDRedirectFrom(reqID, fromReqID string) {
 	c.reqIDDataLock.Unlock()
 }
 
-func (c *queryCmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.QueryRequests, traceID string, replies []*msg.QueryReply) poller.Requests {
+func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.QueryRequests, traceID string, replies []*msg.QueryReply) poller.Requests {
 	var buf bytes.Buffer
 	w := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', 0)
 
@@ -557,7 +560,7 @@ func (c *queryCmd) queryComplete(ctx context.Context, start time.Time, queryReq 
 	return ret
 }
 
-func (c *queryCmd) countRedirects(reqID string) int {
+func (c *cmd) countRedirects(reqID string) int {
 	c.reqIDDataLock.RLock()
 	defer c.reqIDDataLock.RUnlock()
 
@@ -570,7 +573,7 @@ func (c *queryCmd) countRedirects(reqID string) int {
 	}
 }
 
-func (c *queryCmd) Result(ctx context.Context, result *results.Result) poller.Requests {
+func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Requests {
 	complete := zvelo.IsComplete(result.QueryResult)
 
 	if complete {
@@ -630,7 +633,7 @@ func (c *queryCmd) Result(ctx context.Context, result *results.Result) poller.Re
 	return requests
 }
 
-func (c *queryCmd) callbackHandler(ctx context.Context) callback.Handler {
+func (c *cmd) callbackHandler(ctx context.Context) callback.Handler {
 	return callback.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request, result *msg.QueryResult) {
 		c.Result(ctx, &results.Result{QueryResult: result})
 	})

@@ -81,13 +81,13 @@ func (c *cmd) setup(cli *cli.Context) error {
 	return nil
 }
 
-func (c *cmd) action(_ *cli.Context) error {
+func (c *cmd) action(cli *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
 	c.wg.Add(len(c.requests))
 
-	go c.poller.Poll(ctx, c.requests, c)
+	go c.poller.Poll(ctx, cli, c.requests, c)
 
 	// wait for the wait group to complete or the context to timeout
 	go func() {

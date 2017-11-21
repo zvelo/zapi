@@ -103,14 +103,14 @@ func Command(appName string) cli.Command {
 	}
 }
 
-func (c *cmd) setup(_ *cli.Context) error {
+func (c *cmd) setup(cli *cli.Context) error {
 	var err error
-	c.verifier, err = c.Verifier(context.Background())
+	c.verifier, err = c.Verifier(context.Background(), cli)
 	return err
 }
 
-func (c *cmd) action(_ *cli.Context) error {
-	tokensource := c.TokenSource()
+func (c *cmd) action(cli *cli.Context) error {
+	tokensource := c.TokenSource(cli)
 	if tokensource == nil {
 		return nil
 	}

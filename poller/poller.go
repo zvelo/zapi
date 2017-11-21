@@ -35,7 +35,7 @@ var _ Handler = HandlerFunc(nil)
 type Requests map[string]string
 
 type Poller interface {
-	Poll(ctx context.Context, requests Requests, fn Handler)
+	Poll(ctx context.Context, cli *cli.Context, requests Requests, fn Handler)
 	Flags() []cli.Flag
 }
 
@@ -74,11 +74,11 @@ func (p *poller) Flags() []cli.Flag {
 	}
 }
 
-func (p *poller) Poll(ctx context.Context, requests Requests, h Handler) {
+func (p *poller) Poll(ctx context.Context, cli *cli.Context, requests Requests, h Handler) {
 	var err error
 
 	// do one poll immediately
-	if requests, err = p.pollRequests(ctx, requests, h); err != nil {
+	if requests, err = p.pollRequests(ctx, cli, requests, h); err != nil {
 		zvelo.Errorf("%s\n", err)
 	}
 
@@ -92,7 +92,7 @@ func (p *poller) Poll(ctx context.Context, requests Requests, h Handler) {
 	for {
 		select {
 		case <-ticker.C:
-			if requests, err = p.pollRequests(ctx, requests, h); err != nil {
+			if requests, err = p.pollRequests(ctx, cli, requests, h); err != nil {
 				zvelo.Errorf("%s\n", err)
 			}
 
@@ -105,11 +105,11 @@ func (p *poller) Poll(ctx context.Context, requests Requests, h Handler) {
 	}
 }
 
-func (p *poller) pollRequests(ctx context.Context, requests Requests, h Handler) (Requests, error) {
+func (p *poller) pollRequests(ctx context.Context, cli *cli.Context, requests Requests, h Handler) (Requests, error) {
 	stillPending := Requests{}
 
 	for reqID, url := range requests {
-		newRequests, err := p.pollRequest(ctx, reqID, url, h)
+		newRequests, err := p.pollRequest(ctx, cli, reqID, url, h)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func (p *poller) pollRequests(ctx context.Context, requests Requests, h Handler)
 	return stillPending, nil
 }
 
-func (p *poller) pollRequest(ctx context.Context, reqID, url string, h Handler) (Requests, error) {
+func (p *poller) pollRequest(ctx context.Context, cli *cli.Context, reqID, url string, h Handler) (Requests, error) {
 	if *p.debug {
 		if url == "" {
 			fmt.Fprintf(os.Stderr, "polling for: %s\n", reqID)
@@ -141,7 +141,7 @@ func (p *poller) pollRequest(ctx context.Context, reqID, url string, h Handler) 
 	}
 
 	var err error
-	result.QueryResult, result.PollTraceID, err = pollFn(ctx, reqID)
+	result.QueryResult, result.PollTraceID, err = pollFn(ctx, cli, reqID)
 
 	if err != nil {
 		return nil, err
@@ -160,8 +160,8 @@ func (p *poller) pollRequest(ctx context.Context, reqID, url string, h Handler) 
 	return newRequests, nil
 }
 
-func (p *poller) pollREST(ctx context.Context, reqID string) (result *msg.QueryResult, traceID string, err error) {
-	return pollREST(ctx, p.clients.RESTv1(), reqID)
+func (p *poller) pollREST(ctx context.Context, cli *cli.Context, reqID string) (result *msg.QueryResult, traceID string, err error) {
+	return pollREST(ctx, p.clients.RESTv1(cli), reqID)
 }
 
 func pollREST(ctx context.Context, client zapi.RESTv1Client, reqID string) (result *msg.QueryResult, traceID string, err error) {
@@ -173,8 +173,8 @@ func pollREST(ctx context.Context, client zapi.RESTv1Client, reqID string) (resu
 	return result, traceID, err
 }
 
-func (p *poller) pollGRPC(ctx context.Context, reqID string) (*msg.QueryResult, string, error) {
-	client, err := p.clients.GRPCv1(ctx)
+func (p *poller) pollGRPC(ctx context.Context, cli *cli.Context, reqID string) (*msg.QueryResult, string, error) {
+	client, err := p.clients.GRPCv1(ctx, cli)
 	if err != nil {
 		return nil, "<`1`>", err
 	}

@@ -92,13 +92,13 @@ func (c *cmd) setup(_ *cli.Context) error {
 	return nil
 }
 
-func (c *cmd) action(_ *cli.Context) error {
+func (c *cmd) action(cli *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
 	var resp *http.Response
 	var result string
-	if err := c.clients.RESTv1().GraphQL(ctx, c.query, &result, zapi.Response(&resp)); err != nil {
+	if err := c.clients.RESTv1(cli).GraphQL(ctx, c.query, &result, zapi.Response(&resp)); err != nil {
 		return err
 	}
 
