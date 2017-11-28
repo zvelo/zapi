@@ -608,13 +608,22 @@ func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Request
 		return nil
 	}
 
-	if qs.Location == result.Url {
+	location := qs.Location
+
+	if location[0] == '/' {
+		// make relative redirects absolute
+		if u, err := url.Parse(result.Url); err == nil {
+			u.Path = location
+			location = u.String()
+		}
+	}
+
+	if location == result.Url {
 		zvelo.Errorf("\nnot redirecting to the same url\n")
 		return nil
 	}
 
 	num := c.countRedirects(result.RequestId) + 1
-	location := qs.Location
 
 	if num >= c.redirectLimit {
 		zvelo.Errorf("\ntoo many redirects (%d): %s → %s\n", num, result.Url, location)
