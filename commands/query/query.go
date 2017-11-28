@@ -440,15 +440,28 @@ func (c *cmd) action(_ *cli.Context) error {
 func (c *cmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poller.Requests, error) {
 	start := time.Now()
 
+	n := len(queryReq.Url) + len(queryReq.Content)
+
 	if !c.noPoll || c.callbackURL != "" {
-		c.wg.Add(len(queryReq.Url) + len(queryReq.Content))
+		c.wg.Add(n)
 	}
+
+	var ret poller.Requests
+	var err error
 
 	if c.rest {
-		return c.queryREST(ctx, start, queryReq)
+		ret, err = c.queryREST(ctx, start, queryReq)
+	} else {
+		ret, err = c.queryGRPC(ctx, start, queryReq)
 	}
 
-	return c.queryGRPC(ctx, start, queryReq)
+	if err != nil {
+		for i := 0; i < n; i++ {
+			c.wg.Done()
+		}
+	}
+
+	return ret, err
 }
 
 func (c *cmd) queryREST(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
