@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -399,10 +400,16 @@ func (c *cmd) action(_ *cli.Context) error {
 
 	if c.callbackURL != "" {
 		go func() {
+			debugWriter := io.Writer(nil)
+
+			if c.debug {
+				debugWriter = os.Stderr
+			}
+
 			fmt.Fprintf(os.Stderr, "listening for callbacks at %s\n", c.listen)
 			_ = http.ListenAndServe(
 				c.listen,
-				callback.Middleware(c.keyGetter, c.callbackHandler(ctx)),
+				callback.Middleware(c.keyGetter, c.callbackHandler(ctx), debugWriter),
 			)
 		}()
 	}
