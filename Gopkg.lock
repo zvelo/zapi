@@ -166,12 +166,12 @@
 [[projects]]
   name = "zvelo.io/msg"
   packages = [".","internal/static","mock"]
-  revision = "6c91a03991f84c6787b15a7285be0842c82adcd2"
-  version = "v1.9.1"
+  revision = "8f6563bef7d24cbfbbad17371ef0a6f10082d18d"
+  version = "v1.9.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2874b91fe46f06d82b38a8ce2b02de271b2626b277184b67d166a29f56dc8490"
+  inputs-digest = "ce1df5b8b71cf098d76a4f742e0cd8fde733c5963f8063182e25ec3855b4bbee"
   solver-name = "gps-cdcl"
   solver-version = 1
