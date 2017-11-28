@@ -12,8 +12,8 @@ import (
 
 type Clients interface {
 	Flags() []cli.Flag
-	RESTv1(*cli.Context) zapi.RESTv1Client
-	GRPCv1(context.Context, *cli.Context) (zapi.GRPCv1Client, error)
+	RESTv1() zapi.RESTv1Client
+	GRPCv1(context.Context) (zapi.GRPCv1Client, error)
 }
 
 func New(tokenSourcer tokensourcer.TokenSourcer, debug *bool) Clients {
@@ -81,20 +81,20 @@ func (d *data) zapiOpts() []zapi.Option {
 	return zapiOpts
 }
 
-func (d *data) RESTv1(cli *cli.Context) zapi.RESTv1Client {
+func (d *data) RESTv1() zapi.RESTv1Client {
 	if d.restV1 == nil {
-		d.restV1 = zapi.NewRESTv1(d.TokenSource(cli), d.zapiOpts()...)
+		d.restV1 = zapi.NewRESTv1(d.TokenSource(), d.zapiOpts()...)
 	}
 
 	return d.restV1
 }
 
-func (d *data) GRPCv1(ctx context.Context, cli *cli.Context) (zapi.GRPCv1Client, error) {
+func (d *data) GRPCv1(ctx context.Context) (zapi.GRPCv1Client, error) {
 	if d.grpcV1 != nil {
 		return d.grpcV1, nil
 	}
 
-	grpcDialer := zapi.NewGRPCv1(d.TokenSource(cli), d.zapiOpts()...)
+	grpcDialer := zapi.NewGRPCv1(d.TokenSource(), d.zapiOpts()...)
 
 	var err error
 	d.grpcV1, err = grpcDialer.Dial(ctx)

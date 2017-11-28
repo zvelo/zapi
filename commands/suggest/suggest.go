@@ -19,7 +19,6 @@ import (
 )
 
 type cmd struct {
-	context      *cli.Context
 	debug, rest  bool
 	clients      clients.Clients
 	categories   cli.StringSlice
@@ -140,9 +139,8 @@ func (c *cmd) setup(_ *cli.Context) error {
 	return nil
 }
 
-func (c *cmd) action(cli *cli.Context) error {
+func (c *cmd) action(_ *cli.Context) error {
 	ctx := context.Background()
-	c.context = cli
 
 	if c.rest {
 		return c.suggestREST(ctx)
@@ -152,7 +150,7 @@ func (c *cmd) action(cli *cli.Context) error {
 }
 
 func (c *cmd) suggestGRPC(ctx context.Context) error {
-	client, err := c.clients.GRPCv1(ctx, c.context)
+	client, err := c.clients.GRPCv1(ctx)
 	if err != nil {
 		return err
 	}
@@ -174,7 +172,7 @@ func (c *cmd) suggestGRPC(ctx context.Context) error {
 
 func (c *cmd) suggestREST(ctx context.Context) error {
 	var resp *http.Response
-	if err := c.clients.RESTv1(c.context).Suggest(ctx, &c.suggestion, zapi.Response(&resp)); err != nil {
+	if err := c.clients.RESTv1().Suggest(ctx, &c.suggestion, zapi.Response(&resp)); err != nil {
 		return err
 	}
 

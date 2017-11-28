@@ -92,10 +92,10 @@
   revision = "40772cbbe5cd30b5f46bdbeb24a7844c7f952250"
 
 [[projects]]
+  branch = "master"
   name = "github.com/urfave/cli"
   packages = ["."]
-  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
-  version = "v1.20.0"
+  revision = "c6af8847eb2b7b297d07c3ede98903e95e680ef9"
 
 [[projects]]
   branch = "master"
@@ -172,6 +172,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "53f3c1e56e70b84f5136a50b3b71b0c0392016819a6938494ed3b795e9c87e64"
+  inputs-digest = "3152a9ecf1ca8a9680868d94c9ce15445ab97f134cb9df31cf06576d9a222d10"
   solver-name = "gps-cdcl"
   solver-version = 1

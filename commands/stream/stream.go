@@ -12,7 +12,6 @@ import (
 )
 
 type cmd struct {
-	context     *cli.Context
 	debug, rest bool
 	clients     clients.Clients
 }
@@ -47,9 +46,8 @@ func Command(appName string) cli.Command {
 	}
 }
 
-func (c *cmd) action(cli *cli.Context) error {
+func (c *cmd) action(_ *cli.Context) error {
 	ctx := context.Background()
-	c.context = cli
 
 	if c.rest {
 		return c.streamREST(ctx)
@@ -63,7 +61,7 @@ type streamClient interface {
 }
 
 func (c *cmd) streamGRPC(ctx context.Context) error {
-	client, err := c.clients.GRPCv1(ctx, c.context)
+	client, err := c.clients.GRPCv1(ctx)
 	if err != nil {
 		return err
 	}
@@ -77,7 +75,7 @@ func (c *cmd) streamGRPC(ctx context.Context) error {
 }
 
 func (c *cmd) streamREST(ctx context.Context) error {
-	stream, err := c.clients.RESTv1(c.context).Stream(ctx)
+	stream, err := c.clients.RESTv1().Stream(ctx)
 	if err != nil {
 		return err
 	}

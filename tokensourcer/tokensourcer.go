@@ -17,8 +17,8 @@ import (
 
 type TokenSourcer interface {
 	Flags() []cli.Flag
-	TokenSource(*cli.Context) oauth2.TokenSource
-	Verifier(context.Context, *cli.Context) (*oidc.IDTokenVerifier, error)
+	TokenSource() oauth2.TokenSource
+	Verifier(context.Context) (*oidc.IDTokenVerifier, error)
 }
 
 func New(appName string, debug *bool, scope ...string) TokenSourcer {
@@ -47,6 +47,7 @@ type data struct {
 	noOpenBrowser          bool
 	clientID, clientSecret string
 	noCacheToken           bool
+	scopesFlag             cli.StringSlice
 
 	defaultScopes []string
 }
@@ -112,19 +113,20 @@ func (d *data) Flags() []cli.Flag {
 			Name:   "scope",
 			EnvVar: "ZVELO_SCOPES",
 			Usage:  "scopes to request with the token, may be repeated (default: " + strings.Join(d.defaultScopes, ", ") + ")",
+			Value:  &d.scopesFlag,
 		},
 	}
 }
 
-func (d *data) scopes(cli *cli.Context) []string {
-	if scopes := cli.StringSlice("scope"); len(scopes) > 0 {
-		return scopes
+func (d *data) scopes() []string {
+	if len(d.scopesFlag) > 0 {
+		return d.scopesFlag
 	}
 	return d.defaultScopes
 }
 
-func (d *data) TokenSource(cli *cli.Context) oauth2.TokenSource {
-	scopes := d.scopes(cli)
+func (d *data) TokenSource() oauth2.TokenSource {
+	scopes := d.scopes()
 
 	if d.tokenSource != nil || d.mockNoCredentials {
 		return nil
@@ -180,8 +182,8 @@ func (d *data) TokenSource(cli *cli.Context) oauth2.TokenSource {
 	return d.tokenSource
 }
 
-func (d *data) Verifier(ctx context.Context, cli *cli.Context) (*oidc.IDTokenVerifier, error) {
-	scopes := d.scopes(cli)
+func (d *data) Verifier(ctx context.Context) (*oidc.IDTokenVerifier, error) {
+	scopes := d.scopes()
 
 	if d.verifier != nil {
 		return d.verifier, nil

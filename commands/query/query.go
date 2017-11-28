@@ -43,10 +43,10 @@ func defaultDatasets() []string {
 }
 
 type cmd struct {
-	context            *cli.Context
 	appName            string
 	wg                 sync.WaitGroup
 	datasets           []msg.DataSetType
+	datasetStrings     cli.StringSlice
 	debug, rest        bool
 	timeout            time.Duration
 	clients            clients.Clients
@@ -193,6 +193,7 @@ func (c *cmd) Flags() []cli.Flag {
 			Name:   "dataset",
 			EnvVar: "ZVELO_DATASETS",
 			Usage:  "list of datasets to retrieve, may be repeated (available options: " + strings.Join(availableDS(), ", ") + ", default: " + strings.Join(defaultDatasets(), ", ") + ")",
+			Value:  &c.datasetStrings,
 		},
 	)
 }
@@ -315,14 +316,12 @@ func (c *cmd) setupContents() error {
 	return nil
 }
 
-func (c *cmd) setupDataSets(cli *cli.Context) error {
-	datasetStrings := cli.StringSlice("dataset")
-
-	if len(datasetStrings) == 0 {
-		datasetStrings = defaultDatasets()
+func (c *cmd) setupDataSets() error {
+	if len(c.datasetStrings) == 0 {
+		c.datasetStrings = defaultDatasets()
 	}
 
-	for _, dsName := range datasetStrings {
+	for _, dsName := range c.datasetStrings {
 		dsName = strings.TrimSpace(dsName)
 
 		dst, err := msg.NewDataSetType(dsName)
@@ -342,7 +341,7 @@ func (c *cmd) setupDataSets(cli *cli.Context) error {
 }
 
 func (c *cmd) setup(cli *cli.Context) error {
-	if err := c.setupDataSets(cli); err != nil {
+	if err := c.setupDataSets(); err != nil {
 		return err
 	}
 
@@ -393,9 +392,7 @@ func (c *cmd) setup(cli *cli.Context) error {
 	return nil
 }
 
-func (c *cmd) action(cli *cli.Context) error {
-	c.context = cli
-
+func (c *cmd) action(_ *cli.Context) error {
 	ctx := mock.QueryContext(context.Background(), c.mockContextOpts...)
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
@@ -423,7 +420,7 @@ func (c *cmd) action(cli *cli.Context) error {
 	}
 
 	if !c.noPoll {
-		go c.poller.Poll(ctx, c.context, requests, c)
+		go c.poller.Poll(ctx, requests, c)
 	}
 
 	if !c.noPoll || c.callbackURL != "" {
@@ -456,7 +453,7 @@ func (c *cmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poller.Re
 
 func (c *cmd) queryREST(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
 	var resp *http.Response
-	replies, err := c.clients.RESTv1(c.context).Query(ctx, queryReq, zapi.Response(&resp))
+	replies, err := c.clients.RESTv1().Query(ctx, queryReq, zapi.Response(&resp))
 	if err != nil {
 		return nil, err
 	}
@@ -465,7 +462,7 @@ func (c *cmd) queryREST(ctx context.Context, start time.Time, queryReq *msg.Quer
 }
 
 func (c *cmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
-	client, err := c.clients.GRPCv1(ctx, c.context)
+	client, err := c.clients.GRPCv1(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -6,9 +6,10 @@
   name = "github.com/pkg/errors"
   version = "0.8.0"
 
+# 1.20.0 doesn't include https://github.com/urfave/cli/pull/687
 [[constraint]]
   name = "github.com/urfave/cli"
-  version = "1.20.0"
+  branch = "master"
 
 [[constraint]]
   name = "google.golang.org/grpc"
