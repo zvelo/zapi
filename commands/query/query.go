@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
@@ -34,6 +35,8 @@ import (
 	"zvelo.io/zapi/tokensourcer"
 )
 
+var jsonMarshaler = jsonpb.Marshaler{OrigName: true}
+
 type reqData struct {
 	start        time.Time
 	redirectFrom string
@@ -48,7 +51,7 @@ type cmd struct {
 	wg                 sync.WaitGroup
 	datasets           []msg.DataSetType
 	datasetStrings     cli.StringSlice
-	debug, rest        bool
+	debug, rest, json  bool
 	timeout            time.Duration
 	clients            clients.Clients
 	poller             poller.Poller
@@ -91,6 +94,12 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_REST",
 			Usage:       "Use REST instead of gRPC for api requests",
 			Destination: &c.rest,
+		},
+		cli.BoolFlag{
+			Name:        "json",
+			EnvVar:      "ZVELO_JSON",
+			Usage:       "Print raw JSON response",
+			Destination: &c.json,
 		},
 		cli.DurationFlag{
 			Name:        "timeout",
@@ -478,7 +487,7 @@ func (c *cmd) queryREST(ctx context.Context, start time.Time, queryReq *msg.Quer
 		return nil, err
 	}
 
-	return c.queryComplete(ctx, start, queryReq, resp.Header.Get("uber-trace-id"), replies.Reply), nil
+	return c.queryComplete(ctx, start, queryReq, resp.Header.Get("uber-trace-id"), replies), nil
 }
 
 func (c *cmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
@@ -498,7 +507,7 @@ func (c *cmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg.Quer
 		traceID = tids[0]
 	}
 
-	return c.queryComplete(ctx, start, queryReq, traceID, replies.Reply), nil
+	return c.queryComplete(ctx, start, queryReq, traceID, replies), nil
 }
 
 func (c *cmd) getReqIDStart(reqID string) time.Time {
@@ -521,7 +530,9 @@ func (c *cmd) setReqIDRedirectFrom(reqID, fromReqID string) {
 	c.reqIDDataLock.Unlock()
 }
 
-func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.QueryRequests, traceID string, replies []*msg.QueryReply) poller.Requests {
+func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.QueryRequests, traceID string, reply *msg.QueryReplies) poller.Requests {
+	replies := reply.Reply
+
 	var buf bytes.Buffer
 	w := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', 0)
 
@@ -529,6 +540,13 @@ func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.
 		_ = w.Flush()
 		printf := zvelo.PrintfFunc(color.FgCyan, os.Stderr)
 		printf(buf.String())
+
+		if c.json {
+			if err := jsonMarshaler.Marshal(os.Stdout, reply); err != nil {
+				zvelo.Errorf("marshal error: %s\n", err)
+			}
+			fmt.Fprintln(os.Stdout)
+		}
 	}()
 
 	if traceID != "" {
@@ -571,7 +589,10 @@ func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.
 		ret[reply.RequestId] = u
 
 		c.setReqIDStart(reply.RequestId, start)
-		fmt.Fprintf(w, "%s:\t%s\n", u, reply.RequestId)
+
+		if !c.json {
+			fmt.Fprintf(w, "%s:\t%s\n", u, reply.RequestId)
+		}
 	}
 
 	return ret
@@ -604,7 +625,7 @@ func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Request
 	isRedirect := qs.Location != "" && qs.FetchCode >= 300 && qs.FetchCode < 400
 
 	if c.debug || c.noFollowRedirects || (complete && !isRedirect) {
-		results.Print(result)
+		results.Print(result, c.json)
 	}
 
 	if c.noFollowRedirects || !complete {

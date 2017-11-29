@@ -9,12 +9,15 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/gogo/protobuf/jsonpb"
 
 	"google.golang.org/grpc/codes"
 
 	"zvelo.io/msg"
 	"zvelo.io/zapi/internal/zvelo"
 )
+
+var jsonMarshaler = jsonpb.Marshaler{OrigName: true}
 
 type Result struct {
 	*msg.QueryResult
@@ -99,12 +102,20 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 	},
 }).Parse(queryResultTplStr))
 
-func Print(result *Result) {
+func Print(result *Result, json bool) {
 	fmt.Fprintf(os.Stderr, "\nreceived result\n")
 
 	if traceID := result.PollTraceID; traceID != "" {
 		printf := zvelo.PrintfFunc(color.FgCyan, os.Stderr)
 		printf("Trace ID:           %s\n", zvelo.TraceIDString(traceID))
+	}
+
+	if json {
+		if err := jsonMarshaler.Marshal(os.Stdout, result.QueryResult); err != nil {
+			zvelo.Errorf("marshal error: %s\n", err)
+		}
+		fmt.Fprintln(os.Stdout)
+		return
 	}
 
 	var buf bytes.Buffer

@@ -12,8 +12,8 @@ import (
 )
 
 type cmd struct {
-	debug, rest bool
-	clients     clients.Clients
+	debug, rest, json bool
+	clients           clients.Clients
 }
 
 func (c *cmd) Flags() []cli.Flag {
@@ -29,6 +29,12 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_REST",
 			Usage:       "Use REST instead of gRPC for api requests",
 			Destination: &c.rest,
+		},
+		cli.BoolFlag{
+			Name:        "json",
+			EnvVar:      "ZVELO_JSON",
+			Usage:       "Print raw JSON response",
+			Destination: &c.json,
 		},
 	)
 }
@@ -71,7 +77,7 @@ func (c *cmd) streamGRPC(ctx context.Context) error {
 		return err
 	}
 
-	return handle(stream)
+	return c.handle(stream)
 }
 
 func (c *cmd) streamREST(ctx context.Context) error {
@@ -80,10 +86,10 @@ func (c *cmd) streamREST(ctx context.Context) error {
 		return err
 	}
 
-	return handle(stream)
+	return c.handle(stream)
 }
 
-func handle(stream streamClient) error {
+func (c *cmd) handle(stream streamClient) error {
 	for {
 		result, err := stream.Recv()
 		if err != nil {
@@ -93,6 +99,6 @@ func handle(stream streamClient) error {
 			return err
 		}
 
-		results.Print(&results.Result{QueryResult: result})
+		results.Print(&results.Result{QueryResult: result}, c.json)
 	}
 }

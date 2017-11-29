@@ -18,12 +18,12 @@ import (
 )
 
 type cmd struct {
-	debug, rest bool
-	clients     clients.Clients
-	poller      poller.Poller
-	timeout     time.Duration
-	requests    poller.Requests
-	wg          sync.WaitGroup
+	debug, rest, json bool
+	clients           clients.Clients
+	poller            poller.Poller
+	timeout           time.Duration
+	requests          poller.Requests
+	wg                sync.WaitGroup
 }
 
 func (c *cmd) Flags() []cli.Flag {
@@ -47,6 +47,12 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_REST",
 			Usage:       "Use REST instead of gRPC for api requests",
 			Destination: &c.rest,
+		},
+		cli.BoolFlag{
+			Name:        "json",
+			EnvVar:      "ZVELO_JSON",
+			Usage:       "Print raw JSON response",
+			Destination: &c.json,
 		},
 	)
 }
@@ -101,7 +107,7 @@ func (c *cmd) action(_ *cli.Context) error {
 
 func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Requests {
 	if complete := zvelo.IsComplete(result.QueryResult); complete || c.debug {
-		results.Print(result)
+		results.Print(result, c.json)
 
 		if complete {
 			c.wg.Done()
