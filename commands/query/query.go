@@ -57,6 +57,7 @@ type cmd struct {
 	poller             poller.Poller
 	keyGetter          httpsig.KeyGetter
 	callbackURL        string
+	noListen           bool
 	callbackNoValidate bool
 	callbackNoKeyCache bool
 	listen             string
@@ -114,6 +115,12 @@ func (c *cmd) Flags() []cli.Flag {
 			Usage:       "address and port to listen for callbacks",
 			Value:       ":8080",
 			Destination: &c.listen,
+		},
+		cli.BoolFlag{
+			Name:        "no-listen",
+			EnvVar:      "ZVELO_QUERY_NO_LISTEN",
+			Usage:       "do not listen for results when using --callback",
+			Destination: &c.noListen,
 		},
 		cli.StringFlag{
 			Name:        "callback",
@@ -407,7 +414,7 @@ func (c *cmd) action(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	if c.callbackURL != "" {
+	if c.callbackURL != "" && !c.noListen {
 		go func() {
 			debugWriter := io.Writer(nil)
 
@@ -439,7 +446,7 @@ func (c *cmd) action(_ *cli.Context) error {
 		go c.poller.Poll(ctx, requests, c)
 	}
 
-	if !c.noPoll || c.callbackURL != "" {
+	if !c.noPoll || (c.callbackURL != "" && !c.noListen) {
 		// wait for the wait group to complete or the context to timeout
 		go func() {
 			c.wg.Wait()
@@ -458,7 +465,7 @@ func (c *cmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poller.Re
 
 	n := len(queryReq.Url) + len(queryReq.Content)
 
-	if !c.noPoll || c.callbackURL != "" {
+	if !c.noPoll || (c.callbackURL != "" && !c.noListen) {
 		c.wg.Add(n)
 	}
 
@@ -681,7 +688,8 @@ func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Request
 }
 
 func (c *cmd) callbackHandler(ctx context.Context) callback.Handler {
-	return callback.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request, result *msg.QueryResult) {
+	return callback.HandlerFunc(func(w http.ResponseWriter, _ *http.Request, result *msg.QueryResult) {
+		w.WriteHeader(http.StatusOK)
 		c.Result(ctx, &results.Result{QueryResult: result})
 	})
 }
