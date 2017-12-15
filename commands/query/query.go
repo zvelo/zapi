@@ -443,6 +443,7 @@ func (c *cmd) action(_ *cli.Context) error {
 	}
 
 	if !c.noPoll {
+		// c satisfies the poll.Handler interface due to the Result() method
 		go c.poller.Poll(ctx, requests, c)
 	}
 
@@ -621,7 +622,7 @@ func (c *cmd) countRedirects(reqID string) int {
 func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Requests {
 	complete := zvelo.IsComplete(result.QueryResult)
 
-	if complete {
+	if complete || c.poller.Once() {
 		defer c.wg.Done()
 	}
 

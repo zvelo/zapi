@@ -30,17 +30,20 @@ var queryResultTplStr = `
 {{define "DataSet" -}}
 {{- if .Categorization -}}
 Categories:         {{range .Categorization.Value}}{{.}} {{end}}
+{{if .Categorization.Error}}{{template "Error" .Categorization.Error}}{{end}}
 {{end}}
 
 {{- if .Malicious -}}
 Malicious:          {{malicious .Malicious}}
+{{if .Malicious.Error}}{{template "Error" .Malicious.Error}}{{end}}
 {{end}}
 
 {{- if .Echo}}Echo:               {{.Echo.Url}}
+{{if .Echo.Error}}{{template "Error" .Echo.Error}}{{end}}
 {{end}}
 {{- end}}
 
-{{define "Status" -}}
+{{define "Error" -}}
 Error Code:         {{errorcode .Code}}
 {{if .Message}}Error Message:      {{.Message}}
 {{end}}
@@ -52,7 +55,7 @@ Error Code:         {{errorcode .Code}}
 {{end}}
 {{- if .Location}}Redirect Location:  {{.Location}}
 {{end}}
-{{- if .Error}}{{template "Status" .Error}}{{end}}
+{{- if .Error}}{{template "Error" .Error}}{{end}}
 {{- end}}
 {{- end}}
 

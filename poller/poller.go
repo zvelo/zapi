@@ -37,6 +37,7 @@ type Requests map[string]string
 type Poller interface {
 	Poll(ctx context.Context, requests Requests, fn Handler)
 	Flags() []cli.Flag
+	Once() bool
 }
 
 type poller struct {
@@ -72,6 +73,10 @@ func (p *poller) Flags() []cli.Flag {
 			Destination: &p.once,
 		},
 	}
+}
+
+func (p *poller) Once() bool {
+	return p.once
 }
 
 func (p *poller) Poll(ctx context.Context, requests Requests, h Handler) {

@@ -154,8 +154,8 @@
 [[projects]]
   name = "zvelo.io/go-zapi"
   packages = [".","callback","clientauth","internal/zvelo","tokensource","userauth"]
-  revision = "86d38a09e3f7a4f5c19592e308d4f8363571d8f2"
-  version = "v1.7.0"
+  revision = "4237c84018b8347d4a2dd3c5eba23b0c9869291a"
+  version = "v1.7.1"
 
 [[projects]]
   name = "zvelo.io/httpsig"
@@ -172,6 +172,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7efc799da887029db50832b4592a7542ab9f116cd548f24a2a4a7c3942f4c8f3"
+  inputs-digest = "31a869f8e68fae3dd4197a6878166e64bda5b6826232724a2a594f02663a9e08"
   solver-name = "gps-cdcl"
   solver-version = 1
