@@ -4,14 +4,14 @@
 [[projects]]
   name = "cloud.google.com/go"
   packages = ["compute/metadata"]
-  revision = "2d3a6656c17a60b0815b7e06ab0be04eacb6e613"
-  version = "v0.16.0"
+  revision = "050b16d2314d5fc3d4c9a51e4cd5c7468e77f162"
+  version = "v0.17.0"
 
 [[projects]]
   branch = "v2"
   name = "github.com/coreos/go-oidc"
   packages = ["."]
-  revision = "77e7f2010a464ade7338597afe650dfcffbe2ca8"
+  revision = "2e15e5498dc4eda1265de6f4ccc49419fd81be16"
 
 [[projects]]
   name = "github.com/fatih/color"
@@ -29,7 +29,7 @@
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["jsonpb","proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/struct","ptypes/timestamp"]
-  revision = "1643683e1b54a9e88ad26d98f81400c8c9d9f4f9"
+  revision = "1e59b77b52bf8e4b449a57e6f79f21226d571845"
 
 [[projects]]
   name = "github.com/grpc-ecosystem/grpc-gateway"
@@ -86,46 +86,46 @@
   revision = "0dec1b30a0215bb68605dfc568e8855066c9202d"
 
 [[projects]]
-  branch = "master"
   name = "github.com/segmentio/ksuid"
   packages = ["."]
-  revision = "40772cbbe5cd30b5f46bdbeb24a7844c7f952250"
+  revision = "112f929a3020abfcd06b77c963ec919130796a35"
+  version = "1.0.1"
 
 [[projects]]
   branch = "master"
   name = "github.com/urfave/cli"
   packages = ["."]
-  revision = "c6af8847eb2b7b297d07c3ede98903e95e680ef9"
+  revision = "39908eb08fee7c10d842622a114a5c133fb0a3c6"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ed25519","ed25519/internal/edwards25519"]
-  revision = "6a293f2d4b14b8e6d3f0539e383f6d0d30fce3fd"
+  revision = "94eea52f7b742c7cbe0b03b22f0c4c8631ece122"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "a337091b0525af65de94df2eb7e98bd9962dcbe2"
+  revision = "d866cfc389cec985d6fda2859936a575a55a3ab6"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/oauth2"
   packages = [".","clientcredentials","google","internal","jws","jwt"]
-  revision = "9ff8ebcc8e241d46f52ecc5bff0e5a2f2dbef402"
+  revision = "09bba2746c7d9b3181efc10fdb29c59c582f4eb1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "1e2299c37cc91a509f1b12369872d27be0ce98a6"
+  revision = "1d2aa6dbdea45adaaebb9905d0666e4537563829"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "88f656faf3f37f690df1a32515b479415e1a6769"
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -137,13 +137,13 @@
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/api/annotations","googleapis/rpc/status"]
-  revision = "11c7f9e547da6db876260ce49ea7536985904c9b"
+  revision = "a8101f21cf983e773d0c1133ebc5424792003214"
 
 [[projects]]
   name = "google.golang.org/grpc"
-  packages = [".","balancer","codes","connectivity","credentials","credentials/oauth","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","resolver","stats","status","tap","transport"]
-  revision = "401e0e00e4bb830a10496d64cd95e068c5bf50de"
-  version = "v1.7.3"
+  packages = [".","balancer","balancer/roundrobin","codes","connectivity","credentials","credentials/oauth","encoding","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","resolver","resolver/dns","resolver/passthrough","stats","status","tap","transport"]
+  revision = "e687fa4e6424368ece6e4fe727cea2c806a0fcb4"
+  version = "v1.8.2"
 
 [[projects]]
   name = "gopkg.in/square/go-jose.v2"
@@ -166,12 +166,12 @@
 [[projects]]
   name = "zvelo.io/msg"
   packages = [".","internal/static","mock"]
-  revision = "8f6563bef7d24cbfbbad17371ef0a6f10082d18d"
-  version = "v1.9.2"
+  revision = "c8990ce71f254aaeac40232ed968a6409756b862"
+  version = "v1.9.4"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ce1df5b8b71cf098d76a4f742e0cd8fde733c5963f8063182e25ec3855b4bbee"
+  inputs-digest = "7efc799da887029db50832b4592a7542ab9f116cd548f24a2a4a7c3942f4c8f3"
   solver-name = "gps-cdcl"
   solver-version = 1
