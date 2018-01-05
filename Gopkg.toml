@@ -17,7 +17,7 @@
 
 [[constraint]]
   name = "google.golang.org/grpc"
-  version = "1.7.3"
+  version = "1.9.0"
 
 [[constraint]]
   name = "github.com/gogo/protobuf"
@@ -25,8 +25,8 @@
 
 [[constraint]]
   name = "zvelo.io/go-zapi"
-  version = "~1.7.1"
+  version = "~1.7.2"
 
 [[constraint]]
   name = "zvelo.io/msg"
-  version = "~1.9.3"
+  version = "~1.10.0"
