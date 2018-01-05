@@ -34,7 +34,7 @@ Categories:         {{range .Categorization.Value}}{{.}} {{end}}
 {{end}}
 
 {{- if .Malicious -}}
-Malicious:          {{malicious .Malicious}}
+Malicious:          {{range .Malicious.Category}}{{.}} {{end}}
 {{if .Malicious.Error}}{{template "Error" .Malicious.Error}}{{end}}
 {{end}}
 
@@ -89,13 +89,6 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 			return time.Since(result.PollStart).String()
 		}
 		return ""
-	},
-	"malicious": func(m *msg.DataSet_Malicious) string {
-		if m.Verdict == msg.VERDICT_MALICIOUS {
-			return m.Category.String()
-		}
-
-		return m.Verdict.String()
 	},
 	"httpStatus": func(i int32) string {
 		return fmt.Sprintf("%s (%d)", http.StatusText(int(i)), i)

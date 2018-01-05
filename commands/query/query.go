@@ -67,8 +67,7 @@ type cmd struct {
 	urls               []string
 	urlContent         []*msg.URLContent
 	mockCategories     cli.StringSlice
-	mockMalicious      string
-	mockMaliciousClean bool
+	mockMalicious      cli.StringSlice
 	mockCompleteAfter  time.Duration
 	mockFetchCode      int
 	mockLocation       string
@@ -164,15 +163,10 @@ func (c *cmd) Flags() []cli.Flag {
 			Usage: "when querying against the mock server, expect these categories in the categorization response (category id or category short name, may be repeated)",
 			Value: &c.mockCategories,
 		},
-		cli.StringFlag{
-			Name:        "mock-malicious-category",
-			Usage:       "when querying against the mock server, expect this category in the malicious response and for the verdict to be MALICIOUS (category id or category short name)",
-			Destination: &c.mockMalicious,
-		},
-		cli.BoolFlag{
-			Name:        "mock-malicious-clean",
-			Usage:       "when querying against the mock server, expect the malicious dataset to return CLEAN with UNKNOWN_CATEGORY",
-			Destination: &c.mockMaliciousClean,
+		cli.StringSliceFlag{
+			Name:  "mock-malicious-category",
+			Usage: "when querying against the mock server, expect this category in the malicious response and for the verdict to be MALICIOUS (category id or category short name, may be repeated)",
+			Value: &c.mockMalicious,
 		},
 		cli.DurationFlag{
 			Name:        "mock-complete-after",
@@ -261,16 +255,17 @@ func (c *cmd) setupMock() error {
 		c.mockContextOpts = append(c.mockContextOpts, mock.WithCategories(cats...))
 	}
 
-	if c.mockMaliciousClean {
-		c.mockContextOpts = append(c.mockContextOpts, mock.WithMalicious(msg.VERDICT_CLEAN, msg.UNKNOWN_CATEGORY))
+	var malcats []msg.Category
+	for _, catName := range c.mockMalicious {
+		cat := msg.ParseCategory(catName)
+		if cat == msg.UNKNOWN_CATEGORY {
+			return errors.Errorf("invalid category: %s", catName)
+		}
+		malcats = append(malcats, cat)
 	}
 
-	if c.mockMalicious != "" {
-		malcat := msg.ParseCategory(c.mockMalicious)
-		if malcat == msg.UNKNOWN_CATEGORY {
-			return errors.Errorf("invalid category: %s", c.mockMalicious)
-		}
-		c.mockContextOpts = append(c.mockContextOpts, mock.WithMalicious(msg.VERDICT_MALICIOUS, msg.Category(malcat)))
+	if len(c.mockMalicious) > 0 {
+		c.mockContextOpts = append(c.mockContextOpts, mock.WithMalicious(malcats...))
 	}
 
 	if c.mockCompleteAfter > 0 {

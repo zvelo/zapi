@@ -22,7 +22,7 @@ type cmd struct {
 	debug, rest  bool
 	clients      clients.Clients
 	categories   cli.StringSlice
-	malicious    string
+	malicious    cli.StringSlice
 	notMalicious bool
 	suggestion   msg.Suggestion
 }
@@ -51,10 +51,10 @@ func (c *cmd) Flags() []cli.Flag {
 			Usage: "categories to suggest, may be repeated",
 			Value: &c.categories,
 		},
-		cli.StringFlag{
-			Name:        "malicious-category",
-			Usage:       "malicious category to suggest",
-			Destination: &c.malicious,
+		cli.StringSliceFlag{
+			Name:  "malicious-category",
+			Usage: "malicious category to suggest, may be repeated",
+			Value: &c.malicious,
 		},
 		cli.BoolFlag{
 			Name:        "not-malicious",
@@ -102,23 +102,26 @@ func (c *cmd) setup(_ *cli.Context) error {
 		}
 	}
 
-	if c.malicious != "" && c.notMalicious {
-		return errors.New("can't suggest both a malicious category and that the url is not malicious")
+	if len(c.malicious) > 0 && c.notMalicious {
+		return errors.New("can't suggest both malicious categories and that the url is not malicious")
 	}
 
-	if c.malicious != "" {
-		malcat := msg.ParseCategory(c.malicious)
-		if malcat == msg.UNKNOWN_CATEGORY {
-			return errors.Errorf("invalid category: %s", c.malicious)
+	var malcats []msg.Category
+	for _, catName := range c.malicious {
+		cat := msg.ParseCategory(catName)
+		if cat == msg.UNKNOWN_CATEGORY {
+			return errors.Errorf("invalid category: %s", catName)
 		}
+		malcats = append(malcats, cat)
+	}
 
+	if len(malcats) > 0 {
 		if c.suggestion.Dataset == nil {
 			c.suggestion.Dataset = &msg.DataSet{}
 		}
 
 		c.suggestion.Dataset.Malicious = &msg.DataSet_Malicious{
-			Category: malcat,
-			Verdict:  msg.VERDICT_MALICIOUS,
+			Category: malcats,
 		}
 	}
 
@@ -128,7 +131,7 @@ func (c *cmd) setup(_ *cli.Context) error {
 		}
 
 		c.suggestion.Dataset.Malicious = &msg.DataSet_Malicious{
-			Verdict: msg.VERDICT_CLEAN,
+			Category: []msg.Category{},
 		}
 	}
 
