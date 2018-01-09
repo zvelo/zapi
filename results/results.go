@@ -31,12 +31,12 @@ var queryResultTplStr = `
 {{- if .Categorization -}}
 Categories:         {{range .Categorization.Value}}{{.}} {{end}}
 {{if .Categorization.Error}}{{template "Error" .Categorization.Error}}{{end}}
-{{end}}
+{{- end}}
 
 {{- if .Malicious -}}
-Malicious:          {{range .Malicious.Category}}{{.}} {{end}}
+Malicious:          {{if .Malicious.Category}}{{range .Malicious.Category}}{{.}} {{end}}{{else}}CLEAN{{end}}
 {{if .Malicious.Error}}{{template "Error" .Malicious.Error}}{{end}}
-{{end}}
+{{- end}}
 
 {{- if .Echo}}Echo:               {{.Echo.Url}}
 {{if .Echo.Error}}{{template "Error" .Echo.Error}}{{end}}
