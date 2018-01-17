@@ -138,7 +138,7 @@
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/api/annotations","googleapis/rpc/status"]
-  revision = "c9f949ac0119691ae27afb485f20203092ab5b4c"
+  revision = "96659ae18561682ed8d4565c5541606e8295eae8"
   source = "https://github.com/zvelo/go-genproto"
 
 [[projects]]

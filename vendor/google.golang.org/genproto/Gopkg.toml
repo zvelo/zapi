@@ -1,0 +1,4 @@
+[[constraint]]
+  name = "github.com/golang/protobuf"
+  source = "https://github.com/zvelo/protobuf"
+  branch = "master"
