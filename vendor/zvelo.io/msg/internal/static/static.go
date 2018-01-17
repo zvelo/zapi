@@ -191,7 +191,7 @@ var _escData = map[string]*_escFile{
 	"/apiv1.swagger.json": {
 		local:   "static/apiv1.swagger.json",
 		size:    25633,
-		modtime: 1515179146,
+		modtime: 1516141439,
 		compressed: `
 H4sIAAAAAAAA/9R9e3PbNvbo//0UuPrdmSZdV27Snb0z2cnMQiQkIaZIFiTtOFUmhihI4oYiVJJyqnby
 3e8AICXqgI6TtL1396/Ih8DBeb/4yO/fIDRIZVHtt6IavEA/f4MQQgO+2+VZyutMFpf/rmQx+Aahtxdq
@@ -314,7 +314,7 @@ ZAAA
 	"/schema.graphql": {
 		local:   "static/schema.graphql",
 		size:    6963,
-		modtime: 1515180578,
+		modtime: 1515182423,
 		compressed: `
 H4sIAAAAAAAA/5RYX2/ktq5/n0/hfWuBvrS96AXyRku0zYwsafXHk0lRFHPTubuLk022yaRATtHvfmCL
 lL3b7cN5MmVLJMU/P5J+vnt//nhq/tw1ze8v56fXqwY8/fH97q/d7vL66VxW6+f8dP/Ny9P9VRMvTx8e
