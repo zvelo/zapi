@@ -22,7 +22,7 @@ import (
 const appName = "zapi"
 
 var (
-	version = "v1.5.5"
+	version = "v1.6.0"
 	app     = cli.NewApp()
 )
 
