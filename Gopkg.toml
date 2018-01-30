@@ -1,3 +1,8 @@
+[prune]
+  unused-packages = true
+  non-go = true
+  go-tests = true
+
 [[constraint]]
   name = "github.com/coreos/go-oidc"
   branch = "v2"
@@ -25,18 +30,8 @@
 
 [[constraint]]
   name = "zvelo.io/go-zapi"
-  version = "~1.8.0"
+  version = "~1.9.0"
 
 [[constraint]]
   name = "zvelo.io/msg"
-  version = "~1.11.0"
-
-[[override]]
-  name = "google.golang.org/genproto"
-  source = "https://github.com/zvelo/go-genproto"
-  branch = "master"
-
-[[override]]
-  name = "github.com/golang/protobuf"
-  source = "https://github.com/zvelo/protobuf"
-  branch = "master"
+  version = "~1.12.1"

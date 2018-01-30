@@ -173,7 +173,7 @@ func pollREST(ctx context.Context, client zapi.RESTv1Client, reqID string) (resu
 	var resp *http.Response
 	result, err = client.Result(ctx, reqID, zapi.Response(&resp))
 	if result != nil {
-		traceID = resp.Header.Get("uber-trace-id")
+		traceID = resp.Header.Get(zapi.TraceHeader)
 	}
 	return result, traceID, err
 }
@@ -187,9 +187,15 @@ func (p *poller) pollGRPC(ctx context.Context, reqID string) (*msg.QueryResult, 
 	req := msg.RequestID{RequestId: reqID}
 	var header metadata.MD
 	result, err := client.Result(ctx, &req, grpc.Header(&header))
+
+	if *p.debug {
+		zvelo.DebugHeader(header)
+	}
+
 	var traceID string
-	if tids, ok := header["uber-trace-id"]; ok && len(tids) > 0 {
+	if tids, ok := header[zapi.TraceHeader]; ok && len(tids) > 0 {
 		traceID = tids[0]
 	}
+
 	return result, traceID, err
 }

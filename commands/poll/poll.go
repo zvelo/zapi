@@ -18,12 +18,12 @@ import (
 )
 
 type cmd struct {
-	debug, rest, json bool
-	clients           clients.Clients
-	poller            poller.Poller
-	timeout           time.Duration
-	requests          poller.Requests
-	wg                sync.WaitGroup
+	debug, trace, rest, json bool
+	clients                  clients.Clients
+	poller                   poller.Poller
+	timeout                  time.Duration
+	requests                 poller.Requests
+	wg                       sync.WaitGroup
 }
 
 func (c *cmd) Flags() []cli.Flag {
@@ -34,6 +34,12 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_DEBUG",
 			Usage:       "enable debug logging",
 			Destination: &c.debug,
+		},
+		cli.BoolFlag{
+			Name:        "trace",
+			EnvVar:      "ZVELO_TRACE",
+			Usage:       "request a trace to be generated for each request",
+			Destination: &c.trace,
 		},
 		cli.DurationFlag{
 			Name:        "timeout",
@@ -59,8 +65,8 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
-	c.clients = clients.New(tokenSourcer, &c.debug)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, strings.Fields(zapi.DefaultScopes)...)
+	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
 	c.poller = poller.New(&c.debug, &c.rest, c.clients)
 
 	return cli.Command{

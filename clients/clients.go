@@ -16,9 +16,10 @@ type Clients interface {
 	GRPCv1(context.Context) (zapi.GRPCv1Client, error)
 }
 
-func New(tokenSourcer tokensourcer.TokenSourcer, debug *bool) Clients {
+func New(tokenSourcer tokensourcer.TokenSourcer, debug, trace *bool) Clients {
 	return &data{
 		debug:        debug,
+		trace:        trace,
 		TokenSourcer: tokenSourcer,
 	}
 }
@@ -30,11 +31,10 @@ type data struct {
 
 	// passed to constructor
 	tokensourcer.TokenSourcer
-	debug *bool
+	debug, trace *bool
 
 	// from flags
 	addr                  string
-	forceTrace            bool
 	tlsInsecureSkipVerify bool
 }
 
@@ -52,12 +52,6 @@ func (d *data) Flags() []cli.Flag {
 			Usage:       "disable certificate chain and host name verification of the connection to zveloAPI. this should only be used for testing, e.g. with mocks.",
 			Destination: &d.tlsInsecureSkipVerify,
 		},
-		cli.BoolFlag{
-			Name:        "force-trace",
-			EnvVar:      "ZVELO_FORCE_TRACE",
-			Usage:       "force a trace to be generated for each request",
-			Destination: &d.forceTrace,
-		},
 	)
 }
 
@@ -70,8 +64,8 @@ func (d *data) zapiOpts() []zapi.Option {
 		zapiOpts = append(zapiOpts, zapi.WithDebug(os.Stderr))
 	}
 
-	if d.forceTrace {
-		zapiOpts = append(zapiOpts, zapi.WithForceTrace())
+	if *d.trace {
+		zapiOpts = append(zapiOpts, zapi.WithTrace())
 	}
 
 	if d.tlsInsecureSkipVerify {

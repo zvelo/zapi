@@ -3,13 +3,12 @@ package zvelo
 import (
 	"io"
 	"os"
-	"strings"
 
 	"github.com/fatih/color"
-
-	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/metadata"
 
 	"zvelo.io/msg"
+	"zvelo.io/msg/status"
 )
 
 func Errorf(format string, a ...interface{}) {
@@ -36,6 +35,16 @@ func PrintfFunc(attr color.Attribute, w io.Writer) func(format string, a ...inte
 	}
 }
 
-func TraceIDString(traceID string) string {
-	return traceID[:strings.Index(traceID, ":")]
+func DebugHeader(md metadata.MD) {
+	printf := PrintfFunc(color.FgYellow, os.Stderr)
+
+	for k, vs := range md {
+		if k == "trailer" {
+			continue
+		}
+
+		for _, v := range vs {
+			printf("< %s: %s\n", k, v)
+		}
+	}
 }

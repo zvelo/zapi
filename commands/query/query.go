@@ -47,34 +47,34 @@ func defaultDatasets() []string {
 }
 
 type cmd struct {
-	appName            string
-	wg                 sync.WaitGroup
-	datasets           []msg.DataSetType
-	datasetStrings     cli.StringSlice
-	debug, rest, json  bool
-	timeout            time.Duration
-	clients            clients.Clients
-	poller             poller.Poller
-	keyGetter          httpsig.KeyGetter
-	callbackURL        string
-	noListen           bool
-	callbackNoValidate bool
-	callbackNoKeyCache bool
-	listen             string
-	noPoll             bool
-	noFollowRedirects  bool
-	redirectLimit      int
-	urls               []string
-	urlContent         []*msg.URLContent
-	mockCategories     cli.StringSlice
-	mockMalicious      cli.StringSlice
-	mockCompleteAfter  time.Duration
-	mockFetchCode      int
-	mockLocation       string
-	mockErrorCode      int
-	mockErrorMessage   string
-	mockContextOpts    []mock.ContextOption
-	contents           cli.StringSlice
+	appName                  string
+	wg                       sync.WaitGroup
+	datasets                 []msg.DataSetType
+	datasetStrings           cli.StringSlice
+	debug, trace, rest, json bool
+	timeout                  time.Duration
+	clients                  clients.Clients
+	poller                   poller.Poller
+	keyGetter                httpsig.KeyGetter
+	callbackURL              string
+	noListen                 bool
+	callbackNoValidate       bool
+	callbackNoKeyCache       bool
+	listen                   string
+	noPoll                   bool
+	noFollowRedirects        bool
+	redirectLimit            int
+	urls                     []string
+	urlContent               []*msg.URLContent
+	mockCategories           cli.StringSlice
+	mockMalicious            cli.StringSlice
+	mockCompleteAfter        time.Duration
+	mockFetchCode            int
+	mockLocation             string
+	mockErrorCode            int
+	mockErrorMessage         string
+	mockContextOpts          []mock.ContextOption
+	contents                 cli.StringSlice
 
 	reqIDDataLock sync.RWMutex
 	reqIDData     map[string]reqData
@@ -88,6 +88,12 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_DEBUG",
 			Usage:       "enable debug logging",
 			Destination: &c.debug,
+		},
+		cli.BoolFlag{
+			Name:        "trace",
+			EnvVar:      "ZVELO_TRACE",
+			Usage:       "request a trace to be generated for each request",
+			Destination: &c.trace,
 		},
 		cli.BoolFlag{
 			Name:        "rest",
@@ -227,8 +233,8 @@ func Command(appName string) cli.Command {
 		reqIDData: map[string]reqData{},
 	}
 
-	tokenSourcer := tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
-	c.clients = clients.New(tokenSourcer, &c.debug)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, strings.Fields(zapi.DefaultScopes)...)
+	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
 	c.poller = poller.New(&c.debug, &c.rest, c.clients)
 
 	return cli.Command{
@@ -490,7 +496,7 @@ func (c *cmd) queryREST(ctx context.Context, start time.Time, queryReq *msg.Quer
 		return nil, err
 	}
 
-	return c.queryComplete(ctx, start, queryReq, resp.Header.Get("uber-trace-id"), replies), nil
+	return c.queryComplete(ctx, start, queryReq, resp.Header.Get(zapi.TraceHeader), replies), nil
 }
 
 func (c *cmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
@@ -505,8 +511,12 @@ func (c *cmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg.Quer
 		return nil, err
 	}
 
+	if c.debug {
+		zvelo.DebugHeader(header)
+	}
+
 	var traceID string
-	if tids, ok := header["uber-trace-id"]; ok && len(tids) > 0 {
+	if tids, ok := header[zapi.TraceHeader]; ok && len(tids) > 0 {
 		traceID = tids[0]
 	}
 
@@ -553,7 +563,7 @@ func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.
 	}()
 
 	if traceID != "" {
-		fmt.Fprintf(w, "Trace ID:\t%s\n", zvelo.TraceIDString(traceID))
+		fmt.Fprintf(w, "Trace ID:\t%s\n", traceID)
 	}
 
 	fmt.Fprintf(w, "Query Duration:\t%s\n", time.Since(start))

@@ -103,7 +103,7 @@ func Print(result *Result, json bool) {
 
 	if traceID := result.PollTraceID; traceID != "" {
 		printf := zvelo.PrintfFunc(color.FgCyan, os.Stderr)
-		printf("Trace ID:           %s\n", zvelo.TraceIDString(traceID))
+		printf("Trace ID:           %s\n", traceID)
 	}
 
 	if json {

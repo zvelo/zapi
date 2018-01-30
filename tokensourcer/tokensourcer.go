@@ -21,10 +21,11 @@ type TokenSourcer interface {
 	Verifier(context.Context) (*oidc.IDTokenVerifier, error)
 }
 
-func New(appName string, debug *bool, scope ...string) TokenSourcer {
+func New(appName string, debug, trace *bool, scope ...string) TokenSourcer {
 	return &data{
 		appName:       appName,
 		debug:         debug,
+		trace:         trace,
 		defaultScopes: scope,
 	}
 }
@@ -35,8 +36,8 @@ type data struct {
 	verifier    *oidc.IDTokenVerifier
 
 	// passed to constructor
-	appName string
-	debug   *bool
+	appName      string
+	debug, trace *bool
 
 	// from flags
 	accessToken            string
@@ -118,11 +119,32 @@ func (d *data) Flags() []cli.Flag {
 	}
 }
 
-func (d *data) scopes() []string {
-	if len(d.scopesFlag) > 0 {
-		return d.scopesFlag
+func contains(set []string, val string) bool {
+	for _, v := range set {
+		if v == val {
+			return true
+		}
 	}
-	return d.defaultScopes
+	return false
+}
+
+func (d *data) scopes() []string {
+	var s []string
+
+	if len(d.scopesFlag) > 0 {
+		s = d.scopesFlag
+	} else {
+		s = d.defaultScopes
+	}
+
+	scopes := make([]string, len(s))
+	copy(scopes, s)
+
+	if *d.trace && !contains(scopes, "zvelo.trace") {
+		scopes = append(scopes, "zvelo.trace")
+	}
+
+	return scopes
 }
 
 func (d *data) TokenSource() oauth2.TokenSource {

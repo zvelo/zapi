@@ -12,8 +12,8 @@ import (
 )
 
 type cmd struct {
-	debug, rest, json bool
-	clients           clients.Clients
+	debug, trace, rest, json bool
+	clients                  clients.Clients
 }
 
 func (c *cmd) Flags() []cli.Flag {
@@ -23,6 +23,12 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_DEBUG",
 			Usage:       "enable debug logging",
 			Destination: &c.debug,
+		},
+		cli.BoolFlag{
+			Name:        "trace",
+			EnvVar:      "ZVELO_TRACE",
+			Usage:       "request a trace to be generated for each request",
+			Destination: &c.trace,
 		},
 		cli.BoolFlag{
 			Name:        "rest",
@@ -41,8 +47,8 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug, "zvelo.stream")
-	c.clients = clients.New(tokenSourcer, &c.debug)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, "zvelo.stream")
+	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
 
 	return cli.Command{
 		Name:   "stream",

@@ -19,12 +19,12 @@ import (
 )
 
 type cmd struct {
-	debug, rest  bool
-	clients      clients.Clients
-	categories   cli.StringSlice
-	malicious    cli.StringSlice
-	notMalicious bool
-	suggestion   msg.Suggestion
+	debug, trace, rest bool
+	clients            clients.Clients
+	categories         cli.StringSlice
+	malicious          cli.StringSlice
+	notMalicious       bool
+	suggestion         msg.Suggestion
 }
 
 func (c *cmd) Flags() []cli.Flag {
@@ -34,6 +34,12 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_DEBUG",
 			Usage:       "enable debug logging",
 			Destination: &c.debug,
+		},
+		cli.BoolFlag{
+			Name:        "trace",
+			EnvVar:      "ZVELO_TRACE",
+			Usage:       "request a trace to be generated for each request",
+			Destination: &c.trace,
 		},
 		cli.BoolFlag{
 			Name:        "rest",
@@ -66,8 +72,8 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug, "zvelo.suggest")
-	c.clients = clients.New(tokenSourcer, &c.debug)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, "zvelo.suggest")
+	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
 
 	return cli.Command{
 		Name:   "suggest",
@@ -163,8 +169,12 @@ func (c *cmd) suggestGRPC(ctx context.Context) error {
 		return err
 	}
 
+	if c.debug {
+		zvelo.DebugHeader(header)
+	}
+
 	var traceID string
-	if tids, ok := header["uber-trace-id"]; ok && len(tids) > 0 {
+	if tids, ok := header[zapi.TraceHeader]; ok && len(tids) > 0 {
 		traceID = tids[0]
 	}
 
@@ -179,7 +189,7 @@ func (c *cmd) suggestREST(ctx context.Context) error {
 		return err
 	}
 
-	complete(resp.Header.Get("uber-trace-id"))
+	complete(resp.Header.Get(zapi.TraceHeader))
 
 	return nil
 }
@@ -187,6 +197,6 @@ func (c *cmd) suggestREST(ctx context.Context) error {
 func complete(traceID string) {
 	if traceID != "" {
 		printf := zvelo.PrintfFunc(color.FgCyan, os.Stderr)
-		printf("Trace ID: %s\n", zvelo.TraceIDString(traceID))
+		printf("Trace ID: %s\n", traceID)
 	}
 }

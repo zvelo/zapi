@@ -21,10 +21,10 @@ import (
 )
 
 type cmd struct {
-	debug   bool
-	timeout time.Duration
-	clients clients.Clients
-	query   string
+	debug, trace bool
+	timeout      time.Duration
+	clients      clients.Clients
+	query        string
 }
 
 func (c *cmd) Flags() []cli.Flag {
@@ -48,13 +48,19 @@ func (c *cmd) Flags() []cli.Flag {
 				" if you start the content with the letter @, the rest should be a file name to read the data from, or - if you want zapi to read the data from stdin.",
 			Destination: &c.query,
 		},
+		cli.BoolFlag{
+			Name:        "trace",
+			EnvVar:      "ZVELO_TRACE",
+			Usage:       "request a trace to be generated for each request",
+			Destination: &c.trace,
+		},
 	)
 }
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
-	c.clients = clients.New(tokenSourcer, &c.debug)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, strings.Fields(zapi.DefaultScopes)...)
+	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
 
 	return cli.Command{
 		Name:   "graphql",
@@ -102,11 +108,11 @@ func (c *cmd) action(_ *cli.Context) error {
 		return err
 	}
 
-	traceID := resp.Header.Get("uber-trace-id")
+	traceID := resp.Header.Get(zapi.TraceHeader)
 
 	if traceID != "" {
 		printf := zvelo.PrintfFunc(color.FgCyan, os.Stderr)
-		printf("Trace ID: %s\n", zvelo.TraceIDString(traceID))
+		printf("Trace ID: %s\n", traceID)
 	}
 
 	fmt.Println(result)
