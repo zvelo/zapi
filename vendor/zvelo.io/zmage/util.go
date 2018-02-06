@@ -72,7 +72,7 @@ var versionData onceData
 
 func version() (string, error) {
 	versionData.once.Do(func() {
-		versionData.data, versionData.err = sh.Output("git", "describe", "--tags", "--always", "--dirty=\"-dev\"")
+		versionData.data, versionData.err = sh.Output("git", "describe", "--tags", "--always", "--dirty=-dev")
 	})
 	return versionData.data, versionData.err
 }
