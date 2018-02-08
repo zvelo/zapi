@@ -21,18 +21,21 @@ import (
 	"zvelo.io/zapi/internal/zvelo"
 )
 
-const appName = "zapi"
+const name = "zapi"
 
 var (
-	version = "v1.6.0"
-	app     = cli.NewApp()
+	version string
+	commit  string
+	date    string
+
+	app = cli.NewApp()
 )
 
 func init() {
 	cli.FlagNamePrefixer = flagNamePrefixer
 
-	app.Name = appName
-	app.Version = fmt.Sprintf("%s (%s)", version, runtime.Version())
+	app.Name = name
+	app.Version = fmt.Sprintf("%s (commit %s; built %s; %s)", version, commit, date, runtime.Version())
 	app.Usage = "client utility for zvelo api"
 	app.EnableBashCompletion = true
 	app.BashComplete = complete.Bash
@@ -41,15 +44,15 @@ func init() {
 	}
 
 	app.Commands = append(app.Commands,
-		complete.BashCommand(complete.Command(appName)),
-		complete.BashCommand(graphql.Command(appName)),
+		complete.BashCommand(complete.Command(name)),
+		complete.BashCommand(graphql.Command(name)),
 		complete.BashCommand(mock.Command()),
-		complete.BashCommand(poll.Command(appName)),
-		complete.BashCommand(query.Command(appName)),
-		complete.BashCommand(receiver.Command(appName)),
-		complete.BashCommand(suggest.Command(appName)),
-		complete.BashCommand(stream.Command(appName)),
-		complete.BashCommand(token.Command(appName)),
+		complete.BashCommand(poll.Command(name)),
+		complete.BashCommand(query.Command(name)),
+		complete.BashCommand(receiver.Command(name)),
+		complete.BashCommand(suggest.Command(name)),
+		complete.BashCommand(stream.Command(name)),
+		complete.BashCommand(token.Command(name)),
 	)
 }
 
