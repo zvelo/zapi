@@ -58,50 +58,53 @@ func Command(appName string) cli.Command {
 	}
 }
 
-func (c *cmd) action(_ *cli.Context) error {
-	ctx := context.Background()
-
-	if c.rest {
-		return c.streamREST(ctx)
-	}
-
-	return c.streamGRPC(ctx)
-}
-
 type streamClient interface {
 	Recv() (*msg.QueryResult, error)
 }
 
-func (c *cmd) streamGRPC(ctx context.Context) error {
-	client, err := c.clients.GRPCv1(ctx)
-	if err != nil {
-		return err
+type constructor func() (streamClient, error)
+
+func (c *cmd) action(_ *cli.Context) error {
+	if c.rest {
+		return c.handle(c.streamREST)
 	}
 
-	stream, err := client.Stream(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	return c.handle(stream)
+	return c.handle(c.streamGRPC)
 }
 
-func (c *cmd) streamREST(ctx context.Context) error {
-	stream, err := c.clients.RESTv1().Stream(ctx)
+func (c *cmd) streamGRPC() (streamClient, error) {
+	client, err := c.clients.GRPCv1(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Stream(context.Background(), nil)
+}
+
+func (c *cmd) streamREST() (streamClient, error) {
+	return c.clients.RESTv1().Stream(context.Background())
+}
+
+func (c *cmd) handle(client constructor) error {
+	stream, err := client()
 	if err != nil {
 		return err
 	}
 
-	return c.handle(stream)
-}
-
-func (c *cmd) handle(stream streamClient) error {
 	for {
 		result, err := stream.Recv()
-		if err != nil {
-			if err == io.EOF {
-				return nil
+
+		if err == io.EOF {
+			// try to reconnect
+
+			if stream, err = client(); err != nil {
+				return err
 			}
+
+			continue
+		}
+
+		if err != nil {
 			return err
 		}
 
