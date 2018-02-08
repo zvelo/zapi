@@ -80,12 +80,8 @@ func (p *poller) Once() bool {
 }
 
 func (p *poller) Poll(ctx context.Context, requests Requests, h Handler) {
-	var err error
-
 	// do one poll immediately
-	if requests, err = p.pollRequests(ctx, requests, h); err != nil {
-		zvelo.Errorf("%s\n", err)
-	}
+	requests = p.pollRequests(ctx, requests, h)
 
 	if p.once || len(requests) == 0 {
 		return
@@ -97,11 +93,7 @@ func (p *poller) Poll(ctx context.Context, requests Requests, h Handler) {
 	for {
 		select {
 		case <-ticker.C:
-			if requests, err = p.pollRequests(ctx, requests, h); err != nil {
-				zvelo.Errorf("%s\n", err)
-			}
-
-			if len(requests) == 0 {
+			if requests = p.pollRequests(ctx, requests, h); len(requests) == 0 {
 				return
 			}
 		case <-ctx.Done():
@@ -110,13 +102,14 @@ func (p *poller) Poll(ctx context.Context, requests Requests, h Handler) {
 	}
 }
 
-func (p *poller) pollRequests(ctx context.Context, requests Requests, h Handler) (Requests, error) {
+func (p *poller) pollRequests(ctx context.Context, requests Requests, h Handler) Requests {
 	stillPending := Requests{}
 
 	for reqID, url := range requests {
 		newRequests, err := p.pollRequest(ctx, reqID, url, h)
 		if err != nil {
-			return nil, err
+			zvelo.Errorf("%s\n", err)
+			continue
 		}
 
 		for reqID, url := range newRequests {
@@ -124,15 +117,15 @@ func (p *poller) pollRequests(ctx context.Context, requests Requests, h Handler)
 		}
 	}
 
-	return stillPending, nil
+	return stillPending
 }
 
 func (p *poller) pollRequest(ctx context.Context, reqID, url string, h Handler) (Requests, error) {
 	if *p.debug {
 		if url == "" {
-			fmt.Fprintf(os.Stderr, "polling for: %s\n", reqID)
+			fmt.Fprintf(os.Stderr, "polling for: %s\n", reqID) // #nosec
 		} else {
-			fmt.Fprintf(os.Stderr, "polling for: %s (%s)\n", url, reqID)
+			fmt.Fprintf(os.Stderr, "polling for: %s (%s)\n", url, reqID) // #nosec
 		}
 	}
 

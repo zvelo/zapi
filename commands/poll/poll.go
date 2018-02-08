@@ -3,7 +3,6 @@ package poll
 import (
 	"context"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -23,7 +22,6 @@ type cmd struct {
 	poller                   poller.Poller
 	timeout                  time.Duration
 	requests                 poller.Requests
-	wg                       sync.WaitGroup
 }
 
 func (c *cmd) Flags() []cli.Flag {
@@ -97,27 +95,14 @@ func (c *cmd) action(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	c.wg.Add(len(c.requests))
+	c.poller.Poll(ctx, c.requests, c)
 
-	go c.poller.Poll(ctx, c.requests, c)
-
-	// wait for the wait group to complete or the context to timeout
-	go func() {
-		c.wg.Wait()
-		cancel()
-	}()
-
-	<-ctx.Done()
-	return ctx.Err()
+	return nil
 }
 
 func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Requests {
 	if complete := zvelo.IsComplete(result.QueryResult); complete || c.debug {
 		results.Print(result, c.json)
-
-		if complete {
-			c.wg.Done()
-		}
 	}
 
 	return nil

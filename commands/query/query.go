@@ -37,18 +37,12 @@ import (
 
 var jsonMarshaler = jsonpb.Marshaler{OrigName: true}
 
-type reqData struct {
-	start        time.Time
-	redirectFrom string
-}
-
 func defaultDatasets() []string {
 	return []string{msg.CATEGORIZATION.String()}
 }
 
 type cmd struct {
 	appName                  string
-	wg                       sync.WaitGroup
 	datasets                 []msg.DataSetType
 	datasetStrings           cli.StringSlice
 	debug, trace, rest, json bool
@@ -76,8 +70,122 @@ type cmd struct {
 	mockContextOpts          []mock.ContextOption
 	contents                 cli.StringSlice
 
-	reqIDDataLock sync.RWMutex
-	reqIDData     map[string]reqData
+	queries queries
+}
+
+type queryData struct {
+	start        time.Time
+	key          string
+	reqID        string
+	redirectFrom *queryData
+	done         bool
+}
+
+type queries struct {
+	sync.RWMutex
+	internal map[string]*queryData
+	reqs     map[string]*queryData
+	wg       sync.WaitGroup
+}
+
+func (q *queries) Add(start time.Time, key string) {
+	q.Lock()
+	defer q.Unlock()
+
+	if q.internal == nil {
+		q.internal = map[string]*queryData{}
+	}
+
+	q.internal[key] = &queryData{
+		start: start,
+		key:   key,
+	}
+
+	q.wg.Add(1)
+}
+
+func (q *queries) SetReqID(key, reqID string) {
+	q.Lock()
+	defer q.Unlock()
+
+	d, ok := q.internal[key]
+	if !ok {
+		panic(fmt.Errorf("couldn't set reqID for key %q", key))
+	}
+
+	d.reqID = reqID
+
+	if q.reqs == nil {
+		q.reqs = map[string]*queryData{}
+	}
+
+	q.reqs[reqID] = d
+}
+
+func (q *queries) SetRedirect(reqID, fromReqID string) {
+	q.Lock()
+	defer q.Unlock()
+
+	f, ok := q.reqs[fromReqID]
+	if !ok {
+		panic(fmt.Errorf("couldn't find 'from' query for reqID %q", fromReqID))
+	}
+
+	d, ok := q.reqs[reqID]
+	if !ok {
+		panic(fmt.Errorf("couldn't find query for redirect %q", reqID))
+	}
+
+	d.redirectFrom = f
+}
+
+func (q *queries) NumRedirects(reqID string) int {
+	q.RLock()
+	defer q.RUnlock()
+
+	for ret := 0; ; ret++ {
+		d, ok := q.reqs[reqID]
+		if !ok {
+			panic(fmt.Errorf("couldn't count redirect %q", reqID))
+		}
+
+		if d.redirectFrom == nil {
+			return ret
+		}
+
+		reqID = d.redirectFrom.reqID
+	}
+}
+
+func (q *queries) Done(reqID string) {
+	q.Lock()
+	defer q.Unlock()
+
+	d, ok := q.reqs[reqID]
+	if !ok {
+		panic(fmt.Errorf("couldn't complete reqID %q", reqID))
+	}
+
+	if !d.done {
+		d.done = true
+		q.wg.Done()
+	}
+}
+
+func (q *queries) StartTime(reqID string) time.Time {
+	q.RLock()
+	defer q.RUnlock()
+
+	d, ok := q.reqs[reqID]
+	if !ok {
+		panic(fmt.Errorf("couldn't get start time for reqID %q", reqID))
+	}
+
+	return d.start
+}
+
+func (q *queries) Wait() {
+	q.wg.Wait()
 }
 
 func (c *cmd) Flags() []cli.Flag {
@@ -228,10 +336,7 @@ func availableDS() []string {
 }
 
 func Command(appName string) cli.Command {
-	c := cmd{
-		appName:   appName,
-		reqIDData: map[string]reqData{},
-	}
+	c := cmd{appName: appName}
 
 	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, strings.Fields(zapi.DefaultScopes)...)
 	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
@@ -423,11 +528,11 @@ func (c *cmd) action(_ *cli.Context) error {
 				debugWriter = os.Stderr
 			}
 
-			fmt.Fprintf(os.Stderr, "listening for callbacks at %s\n", c.listen)
+			fmt.Fprintf(os.Stderr, "listening for callbacks at %s\n", c.listen) // #nosec
 			_ = http.ListenAndServe(
 				c.listen,
 				callback.Middleware(c.keyGetter, c.callbackHandler(ctx), debugWriter),
-			)
+			) // #nosec
 		}()
 	}
 
@@ -451,7 +556,7 @@ func (c *cmd) action(_ *cli.Context) error {
 	if !c.noPoll || (c.callbackURL != "" && !c.noListen) {
 		// wait for the wait group to complete or the context to timeout
 		go func() {
-			c.wg.Wait()
+			c.queries.Wait()
 			cancel()
 		}()
 
@@ -465,50 +570,53 @@ func (c *cmd) action(_ *cli.Context) error {
 func (c *cmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poller.Requests, error) {
 	start := time.Now()
 
-	n := len(queryReq.Url) + len(queryReq.Content)
-
-	if !c.noPoll || (c.callbackURL != "" && !c.noListen) {
-		c.wg.Add(n)
-	}
-
-	var ret poller.Requests
+	var replies *msg.QueryReplies
+	var traceID string
 	var err error
 
 	if c.rest {
-		ret, err = c.queryREST(ctx, start, queryReq)
+		replies, traceID, err = c.queryREST(ctx, queryReq)
 	} else {
-		ret, err = c.queryGRPC(ctx, start, queryReq)
+		replies, traceID, err = c.queryGRPC(ctx, queryReq)
 	}
 
 	if err != nil {
-		for i := 0; i < n; i++ {
-			c.wg.Done()
+		return nil, errors.Wrap(err, "query error")
+	}
+
+	if !c.noPoll || (c.callbackURL != "" && !c.noListen) {
+		for _, u := range queryReq.Url {
+			c.queries.Add(start, u)
+		}
+
+		for _, u := range queryReq.Content {
+			c.queries.Add(start, u.Url+u.Content)
 		}
 	}
 
-	return ret, err
+	return c.queryComplete(ctx, start, queryReq, traceID, replies), nil
 }
 
-func (c *cmd) queryREST(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
+func (c *cmd) queryREST(ctx context.Context, queryReq *msg.QueryRequests) (*msg.QueryReplies, string, error) {
 	var resp *http.Response
 	replies, err := c.clients.RESTv1().Query(ctx, queryReq, zapi.Response(&resp))
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return c.queryComplete(ctx, start, queryReq, resp.Header.Get(zapi.TraceHeader), replies), nil
+	return replies, resp.Header.Get(zapi.TraceHeader), nil
 }
 
-func (c *cmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg.QueryRequests) (poller.Requests, error) {
+func (c *cmd) queryGRPC(ctx context.Context, queryReq *msg.QueryRequests) (*msg.QueryReplies, string, error) {
 	client, err := c.clients.GRPCv1(ctx)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	var header metadata.MD
 	replies, err := client.Query(ctx, queryReq, grpc.Header(&header))
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if c.debug {
@@ -520,27 +628,7 @@ func (c *cmd) queryGRPC(ctx context.Context, start time.Time, queryReq *msg.Quer
 		traceID = tids[0]
 	}
 
-	return c.queryComplete(ctx, start, queryReq, traceID, replies), nil
-}
-
-func (c *cmd) getReqIDStart(reqID string) time.Time {
-	c.reqIDDataLock.RLock()
-	defer c.reqIDDataLock.RUnlock()
-	return c.reqIDData[reqID].start
-}
-
-func (c *cmd) setReqIDStart(reqID string, start time.Time) {
-	c.reqIDDataLock.Lock()
-	c.reqIDData[reqID] = reqData{start: start}
-	c.reqIDDataLock.Unlock()
-}
-
-func (c *cmd) setReqIDRedirectFrom(reqID, fromReqID string) {
-	c.reqIDDataLock.Lock()
-	data := c.reqIDData[reqID]
-	data.redirectFrom = fromReqID
-	c.reqIDData[reqID] = data
-	c.reqIDDataLock.Unlock()
+	return replies, traceID, nil
 }
 
 func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.QueryRequests, traceID string, reply *msg.QueryReplies) poller.Requests {
@@ -550,7 +638,7 @@ func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.
 	w := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', 0)
 
 	defer func() {
-		_ = w.Flush()
+		_ = w.Flush() // #nosec
 		printf := zvelo.PrintfFunc(color.FgCyan, os.Stderr)
 		printf(buf.String())
 
@@ -558,24 +646,28 @@ func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.
 			if err := jsonMarshaler.Marshal(os.Stdout, reply); err != nil {
 				zvelo.Errorf("marshal error: %s\n", err)
 			}
-			fmt.Fprintln(os.Stdout)
+			fmt.Fprintln(os.Stdout) // #nosec
 		}
 	}()
 
 	if traceID != "" {
-		fmt.Fprintf(w, "Trace ID:\t%s\n", traceID)
+		fmt.Fprintf(w, "Trace ID:\t%s\n", traceID) // #nosec
 	}
 
-	fmt.Fprintf(w, "Query Duration:\t%s\n", time.Since(start))
+	if c.debug {
+		fmt.Fprintf(w, "Query Duration:\t%s\n", time.Since(start)) // #nosec
+	}
 
 	ret := poller.Requests{}
 
 	for i, reply := range replies {
-		var u string
+		var u, key string
 		if i < len(queryReq.Url) {
 			u = queryReq.Url[i]
+			key = u
 		} else if j := i - len(queryReq.Url); j >= 0 && j < len(queryReq.Content) {
 			u = queryReq.Content[j].Url
+			key = queryReq.Content[j].Url + queryReq.Content[j].Content
 
 			p, err := url.Parse(u)
 			if err != nil {
@@ -601,37 +693,26 @@ func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.
 
 		ret[reply.RequestId] = u
 
-		c.setReqIDStart(reply.RequestId, start)
+		if !c.noPoll || (c.callbackURL != "" && !c.noListen) {
+			c.queries.SetReqID(key, reply.RequestId)
+		}
 
 		if !c.json {
-			fmt.Fprintf(w, "%s:\t%s\n", u, reply.RequestId)
+			fmt.Fprintf(w, "%s:\t%s\n", u, reply.RequestId) // #nosec
 		}
 	}
 
 	return ret
 }
 
-func (c *cmd) countRedirects(reqID string) int {
-	c.reqIDDataLock.RLock()
-	defer c.reqIDDataLock.RUnlock()
-
-	for ret := 0; ; ret++ {
-		data, ok := c.reqIDData[reqID]
-		if !ok || data.redirectFrom == "" {
-			return ret
-		}
-		reqID = data.redirectFrom
-	}
-}
-
 func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Requests {
 	complete := zvelo.IsComplete(result.QueryResult)
 
 	if complete || c.poller.Once() {
-		defer c.wg.Done()
+		defer c.queries.Done(result.RequestId)
 	}
 
-	result.Start = c.getReqIDStart(result.RequestId)
+	result.Start = c.queries.StartTime(result.RequestId)
 
 	qs := result.QueryStatus
 
@@ -664,7 +745,7 @@ func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Request
 		return nil
 	}
 
-	num := c.countRedirects(result.RequestId) + 1
+	num := c.queries.NumRedirects(result.RequestId) + 1
 
 	if num >= c.redirectLimit {
 		zvelo.Errorf("\ntoo many redirects (%d): %s → %s\n", num, result.Url, location)
@@ -687,7 +768,7 @@ func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Request
 
 	// There should be at most 1 reqID
 	for reqID := range requests {
-		c.setReqIDRedirectFrom(reqID, result.RequestId)
+		c.queries.SetRedirect(reqID, result.RequestId)
 	}
 
 	return requests
