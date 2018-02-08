@@ -13,6 +13,7 @@ import (
 	"zvelo.io/zapi/commands/mock"
 	"zvelo.io/zapi/commands/poll"
 	"zvelo.io/zapi/commands/query"
+	"zvelo.io/zapi/commands/receiver"
 	"zvelo.io/zapi/commands/stream"
 	"zvelo.io/zapi/commands/suggest"
 	"zvelo.io/zapi/commands/token"
@@ -42,6 +43,7 @@ func init() {
 		complete.BashCommand(mock.Command()),
 		complete.BashCommand(poll.Command(appName)),
 		complete.BashCommand(query.Command(appName)),
+		complete.BashCommand(receiver.Command(appName)),
 		complete.BashCommand(suggest.Command(appName)),
 		complete.BashCommand(stream.Command(appName)),
 		complete.BashCommand(token.Command(appName)),
