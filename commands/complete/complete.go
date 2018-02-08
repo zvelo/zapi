@@ -81,10 +81,8 @@ func complete(c *cli.Context, cmds []cli.Command, flags []cli.Flag) {
 			switch name = strings.TrimSpace(name); len(name) {
 			case 0:
 				continue
-			case 1:
-				name = "-" + name
 			default:
-				name = "--" + name
+				name = "-" + name
 			}
 
 			switch shell {

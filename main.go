@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/urfave/cli"
 
@@ -28,6 +29,8 @@ var (
 )
 
 func init() {
+	cli.FlagNamePrefixer = flagNamePrefixer
+
 	app.Name = appName
 	app.Version = fmt.Sprintf("%s (%s)", version, runtime.Version())
 	app.Usage = "client utility for zvelo api"
@@ -55,4 +58,23 @@ func main() {
 		zvelo.Errorf("%s\n", err)
 		os.Exit(1)
 	}
+}
+
+func flagNamePrefixer(fullName, placeholder string) string {
+	var prefixed string
+	parts := strings.Split(fullName, ",")
+
+	for i, name := range parts {
+		prefixed += "-" + strings.TrimSpace(name)
+
+		if placeholder != "" {
+			prefixed += " " + placeholder
+		}
+
+		if i < len(parts)-1 {
+			prefixed += ", "
+		}
+	}
+
+	return prefixed
 }
