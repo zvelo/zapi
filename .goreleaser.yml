@@ -1,0 +1,41 @@
+---
+builds:
+  - binary: zapi
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+sign:
+  artifacts: checksum
+dockers:
+  - image: zvelo/zapi
+fpm:
+  vendor: zvelo, Inc.
+  homepage: https://github.com/zvelo/zapi
+  maintainer: Joshua Rubin <jrubin@zvelo.com>
+  description: cli app to interact with zveloAPI
+  license: MIT
+  formats:
+    - deb
+    - rpm
+  bindir: /usr/bin
+snapcraft:
+  summary: cli app to interact with zveloAPI
+  description: |
+    cli app to interact with zveloAPI
+  grade: stable
+  confinement: strict
+  apps:
+    zapi:
+      plugs: ["network", "network-bind"]
+brew:
+  github:
+    owner: zvelo
+    name: homebrew-tap
+  folder: Formula
+  description: cli app to interact with zveloAPI
+  homepage: https://github.com/zvelo/zapi
+  test: |
+    system "#{bin}/zapi -version"
