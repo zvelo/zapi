@@ -6,7 +6,7 @@ import (
 
 	grpc "google.golang.org/grpc"
 
-	"github.com/neelance/graphql-go"
+	"github.com/graph-gophers/graphql-go"
 	"github.com/pkg/errors"
 
 	"zvelo.io/msg/internal/static"
@@ -321,6 +321,14 @@ func (s graphQLDataSet) Echo() *graphQLDataSetEcho {
 	return &graphQLDataSetEcho{s.msg.Echo}
 }
 
+func (s graphQLDataSet) Language() *graphQLDataSetLanguage {
+	if s.msg == nil || s.msg.Language == nil {
+		return nil
+	}
+
+	return &graphQLDataSetLanguage{s.msg.Language}
+}
+
 type graphQLDataSetCategorization struct {
 	msg *DataSet_Categorization
 }
@@ -379,6 +387,24 @@ func (s graphQLDataSetEcho) URL() *string {
 }
 
 func (s graphQLDataSetEcho) Error() *graphQLStatus {
+	if s.msg == nil || s.msg.Error == nil {
+		return nil
+	}
+	return &graphQLStatus{s.msg.Error}
+}
+
+type graphQLDataSetLanguage struct {
+	msg *DataSet_Language
+}
+
+func (s graphQLDataSetLanguage) Code() *string {
+	if s.msg == nil {
+		return nil
+	}
+	return &s.msg.Code
+}
+
+func (s graphQLDataSetLanguage) Error() *graphQLStatus {
 	if s.msg == nil || s.msg.Error == nil {
 		return nil
 	}

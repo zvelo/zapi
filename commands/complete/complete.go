@@ -39,6 +39,7 @@ func Bash(c *cli.Context) {
 }
 
 func BashCommand(cmd cli.Command) cli.Command {
+	cmd.SkipArgReorder = true
 	cmd.BashComplete = func(c *cli.Context) {
 		complete(c, cmd.Subcommands, cmd.VisibleFlags())
 	}

@@ -221,3 +221,17 @@ func ProtoPython() ([]string, error) {
 		"--grpc_python_out=../..",
 	)
 }
+
+func protoUsesFile(name string) func(string) (bool, error) {
+	return func(file string) (bool, error) {
+		return name == file, nil
+	}
+}
+
+func Protoset(name string) ([]string, error) {
+	ext := ".protoset"
+	return protoBuild([]string{ext}, protoUsesFile(name), nil, protoc,
+		"--descriptor_set_out="+strings.Replace(name, ".proto", ext, -1),
+		"--include_imports",
+	)
+}

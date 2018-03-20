@@ -11,7 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neelance/graphql-go"
+	"github.com/graph-gophers/graphql-go"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -71,32 +72,44 @@ func timeoutDecode(s string) (time.Duration, error) {
 	return d * time.Duration(t), nil
 }
 
-var validHeaderNames = []string{
-	"uber-trace-id",
-	"jaeger-debug-id",
-	"jaeger-baggage",
-	"authorization",
+var incomingHeaders = map[string]string{
+	"zvelo-debug-id": "zvelo-debug-id",
+	"uber-trace-id":  "uber-trace-id",
 }
 
-var validHeaderPrefixes = []string{
-	"uberctx-",
+var outgoingHeaders = map[string]string{
+	"zvelo-trace-id": "zvelo-trace-id",
+	"server-timing":  "server-timing",
+	"content-type":   "",
+	"trailer":        "",
 }
 
-func validHeader(name string) bool {
-	for _, header := range validHeaderNames {
-		if strings.EqualFold(name, header) {
-			return true
-		}
+func IncomingHeaderMatcher(name string) (string, bool) {
+	if n, ok := runtime.DefaultHeaderMatcher(name); ok {
+		return n, ok
 	}
 
-	lname := strings.ToLower(name)
-	for _, prefix := range validHeaderPrefixes {
-		if strings.HasPrefix(lname, prefix) {
-			return true
+	if n, ok := incomingHeaders[strings.ToLower(name)]; ok {
+		if n == "" {
+			return n, false
 		}
+
+		return n, true
 	}
 
-	return false
+	return "", false
+}
+
+func OutgoingHeaderMatcher(name string) (string, bool) {
+	if n, ok := outgoingHeaders[strings.ToLower(name)]; ok {
+		if n == "" {
+			return n, false
+		}
+
+		return n, true
+	}
+
+	return fmt.Sprintf("%s%s", runtime.MetadataHeaderPrefix, name), true
 }
 
 func annotateContext(req *http.Request) (context.Context, context.CancelFunc, error) {
@@ -119,7 +132,8 @@ func annotateContext(req *http.Request) (context.Context, context.CancelFunc, er
 	}
 
 	for k, vs := range req.Header {
-		if validHeader(k) {
+		var ok bool
+		if k, ok = IncomingHeaderMatcher(k); ok {
 			for _, v := range vs {
 				pairs = append(pairs, k, v)
 			}
@@ -201,12 +215,13 @@ func (h relay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer md.Unlock()
 
 	for k, vs := range md.Header {
-		if validHeader(k) {
+		var ok bool
+		if k, ok = OutgoingHeaderMatcher(k); ok {
 			for _, v := range vs {
 				w.Header().Add(k, v)
 			}
 		}
 	}
 
-	_, _ = w.Write(responseJSON)
+	_, _ = w.Write(responseJSON) // #nosec
 }

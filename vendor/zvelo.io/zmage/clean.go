@@ -18,7 +18,7 @@ func Clean(files ...string) error {
 
 	for _, df := range dirFiles {
 		for _, file := range df {
-			for _, ext := range []string{".pb.go", ".pb.gw.go", "_pb2.py", "_pb2_grpc.py", ".swagger.json"} {
+			for _, ext := range []string{".pb.go", ".pb.gw.go", "_pb2.py", "_pb2_grpc.py", ".swagger.json", ".protoset"} {
 				pbFile := strings.Replace(file, ".proto", ext, -1)
 				files = append(files, pbFile)
 			}

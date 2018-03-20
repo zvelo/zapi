@@ -93,8 +93,8 @@
     "sortkeys",
     "types"
   ]
-  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
-  version = "v0.5"
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -111,6 +111,26 @@
   ]
   revision = "925541529c1fa6821df4e44ce2723319eb2be768"
   version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/graph-gophers/graphql-go"
+  packages = [
+    ".",
+    "errors",
+    "internal/common",
+    "internal/exec",
+    "internal/exec/packer",
+    "internal/exec/resolvable",
+    "internal/exec/selected",
+    "internal/query",
+    "internal/schema",
+    "internal/validation",
+    "introspection",
+    "log",
+    "trace"
+  ]
+  revision = "ce762577cbd55b7431607a3031cd4a9a1460248f"
 
 [[projects]]
   name = "github.com/grpc-ecosystem/grpc-gateway"
@@ -172,26 +192,6 @@
   packages = ["embed"]
   revision = "58d9cde84f237ecdd89bd7f61c2de2853f4c5c6e"
   version = "v0.1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/neelance/graphql-go"
-  packages = [
-    ".",
-    "errors",
-    "internal/common",
-    "internal/exec",
-    "internal/exec/packer",
-    "internal/exec/resolvable",
-    "internal/exec/selected",
-    "internal/query",
-    "internal/schema",
-    "internal/validation",
-    "introspection",
-    "log",
-    "trace"
-  ]
-  revision = "b46637030579abd312c5eea21d36845b6e9e7ca4"
 
 [[projects]]
   branch = "master"
@@ -339,6 +339,7 @@
     "credentials",
     "credentials/oauth",
     "encoding",
+    "encoding/proto",
     "grpclb/grpc_lb_v1/messages",
     "grpclog",
     "internal",
@@ -354,8 +355,8 @@
     "tap",
     "transport"
   ]
-  revision = "6b51017f791ae1cfbec89c52efdf444b13b550ef"
-  version = "v1.9.2"
+  revision = "8e4536a86ab602859c20df5ebfd0bd4228d08655"
+  version = "v1.10.0"
 
 [[projects]]
   branch = "v2"
@@ -392,8 +393,8 @@
     "tokensource",
     "userauth"
   ]
-  revision = "5d9044f0dac008f5e13bc349840f81c3446f939b"
-  version = "v1.9.3"
+  revision = "0b2d57c268382b45b928214b6cae7def6ec9e7e8"
+  version = "v1.9.5"
 
 [[projects]]
   name = "zvelo.io/httpsig"
@@ -413,18 +414,18 @@
     "mock",
     "status"
   ]
-  revision = "122bd51f28b90517e477719b0ea7ca84a48000c0"
-  version = "v1.12.1"
+  revision = "28363cddc3b79f5fa982b7b87a2829cad3de3f2d"
+  version = "v1.12.8"
 
 [[projects]]
   name = "zvelo.io/zmage"
   packages = ["."]
-  revision = "86e17aad4ef99a18e0c0a3aacf02b5de4aea48ce"
-  version = "v3.0.1"
+  revision = "08a6854872f37a26ef1ef6c90b60d0ce16aaff2a"
+  version = "v3.2.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "183f0a1919868706b1540b558cc2c29a96d82ed3314d7828124edb1bb09d4c95"
+  inputs-digest = "5f04237e5c75f04b9f2a8a001d749820f91fa88ad42a5f1922e6c33c4a01ea6d"
   solver-name = "gps-cdcl"
   solver-version = 1
