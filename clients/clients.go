@@ -36,6 +36,7 @@ type data struct {
 	// from flags
 	addr                  string
 	tlsInsecureSkipVerify bool
+	noTLS                 bool
 }
 
 func (d *data) Flags() []cli.Flag {
@@ -51,6 +52,11 @@ func (d *data) Flags() []cli.Flag {
 			Name:        "tls-insecure-skip-verify",
 			Usage:       "disable certificate chain and host name verification of the connection to zveloAPI. this should only be used for testing, e.g. with mocks.",
 			Destination: &d.tlsInsecureSkipVerify,
+		},
+		cli.BoolFlag{
+			Name:        "no-tls",
+			Usage:       "disable tls",
+			Destination: &d.noTLS,
 		},
 	)
 }
@@ -70,6 +76,10 @@ func (d *data) zapiOpts() []zapi.Option {
 
 	if d.tlsInsecureSkipVerify {
 		zapiOpts = append(zapiOpts, zapi.WithTLSInsecureSkipVerify())
+	}
+
+	if d.noTLS {
+		zapiOpts = append(zapiOpts, zapi.WithoutTLS())
 	}
 
 	return zapiOpts
