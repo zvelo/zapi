@@ -12,6 +12,7 @@ import (
 
 	"github.com/coreos/go-oidc"
 	"github.com/urfave/cli"
+	"golang.org/x/oauth2"
 
 	zapi "zvelo.io/go-zapi"
 	"zvelo.io/zapi/tokensourcer"
@@ -29,6 +30,8 @@ var tokenTplStr = `
 {{end}}
 {{- if .Expiry}}Expires At:    {{.Expiry}}
 {{end -}}
+{{- if idtoken .}}ID Token:      {{idtoken .}}
+{{end}}
 `
 
 var idTokenTplStr = `Issuer:        {{.Issuer}}
@@ -39,7 +42,18 @@ Claims:
   {{claims .Claims}}
 `
 
-var tokenTpl = template.Must(template.New("token").Parse(tokenTplStr))
+var tokenTpl = template.Must(template.New("token").
+	Funcs(template.FuncMap{
+		"idtoken": func(i *oauth2.Token) string {
+			if e := i.Extra("id_token"); e != nil {
+				if s, ok := e.(string); ok {
+					return s
+				}
+			}
+			return ""
+		},
+	}).
+	Parse(tokenTplStr))
 
 var idTokenTpl = template.Must(template.New("id_token").
 	Funcs(template.FuncMap{
@@ -59,10 +73,6 @@ var idTokenTpl = template.Must(template.New("id_token").
 			for _, k := range keys {
 				v := i[k]
 				if v == nil || v == "" {
-					continue
-				}
-				switch k {
-				case "iat", "exp", "aud", "sub", "iss", "auth_time":
 					continue
 				}
 				fmt.Fprintf(w, "  %s: \t%v\n", k, v)
