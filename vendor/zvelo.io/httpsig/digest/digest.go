@@ -2,7 +2,7 @@ package digest
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/md5" // #nosec
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -25,36 +25,17 @@ import (
 // https://www.iana.org/assignments/http-dig-alg/http-dig-alg.xhtml
 
 func copyBody(w io.Writer, req *http.Request) error {
-	// if there is no GetBody method, then we'll create one
+	var buf bytes.Buffer
 
-	if req.GetBody == nil {
-		var body bytes.Buffer
-
-		// ensure that the copy, later, also writes to our body buffer
-		w = io.MultiWriter(w, &body)
-
-		req.GetBody = func() (io.ReadCloser, error) {
-			return ioutil.NopCloser(&body), nil
-		}
-	}
-
-	var err error
-
-	if _, err = io.Copy(w, req.Body); err != nil {
+	if _, err := buf.ReadFrom(io.TeeReader(req.Body, w)); err != nil {
 		return err
 	}
 
-	// close the old body
-
-	if err = req.Body.Close(); err != nil {
+	if err := req.Body.Close(); err != nil {
 		return err
 	}
 
-	// set the new body
-
-	if req.Body, err = req.GetBody(); err != nil {
-		return err
-	}
+	req.Body = ioutil.NopCloser(bytes.NewReader(buf.Bytes()))
 
 	return nil
 }
@@ -152,7 +133,7 @@ func (a Algorithm) Hash(req *http.Request) ([]byte, error) {
 	case CRC32c:
 		h = crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	case MD5:
-		h = md5.New()
+		h = md5.New() // #nosec
 	case SHA:
 		h = sha1.New()
 	case SHA256:
