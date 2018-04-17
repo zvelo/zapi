@@ -13,7 +13,6 @@ import (
 	"zvelo.io/go-zapi/clientauth"
 	"zvelo.io/go-zapi/tokensource"
 	"zvelo.io/go-zapi/userauth"
-	"zvelo.io/zapi/timing"
 )
 
 type TokenSourcer interface {
@@ -22,11 +21,10 @@ type TokenSourcer interface {
 	Verifier(context.Context) (*oidc.IDTokenVerifier, error)
 }
 
-func New(appName string, debug, trace *bool, scope ...string) TokenSourcer {
+func New(appName string, debug *bool, scope ...string) TokenSourcer {
 	return &data{
 		appName:       appName,
 		debug:         debug,
-		trace:         trace,
 		defaultScopes: scope,
 	}
 }
@@ -37,8 +35,8 @@ type data struct {
 	verifier    *oidc.IDTokenVerifier
 
 	// passed to constructor
-	appName      string
-	debug, trace *bool
+	appName string
+	debug   *bool
 
 	// from flags
 	accessToken            string
@@ -141,10 +139,6 @@ func (d *data) scopes() []string {
 	scopes := make([]string, len(s))
 	copy(scopes, s)
 
-	if *d.trace && !contains(scopes, "zvelo.trace") {
-		scopes = append(scopes, "zvelo.trace")
-	}
-
 	return scopes
 }
 
@@ -197,7 +191,9 @@ func (d *data) TokenSource() oauth2.TokenSource {
 			d.tokenSource = oauth2.ReuseTokenSource(nil, d.tokenSource)
 		}
 
-		d.tokenSource = timing.TokenSource(d.tokenSource, *d.debug)
+		if *d.debug {
+			d.tokenSource = tokensource.Debug(os.Stderr, d.tokenSource)
+		}
 	}
 
 	return d.tokenSource

@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"google.golang.org/grpc/metadata"
 
 	"zvelo.io/msg"
 	"zvelo.io/msg/status"
@@ -32,19 +31,5 @@ func PrintfFunc(attr color.Attribute, w io.Writer) func(format string, a ...inte
 	c := color.New(attr).FprintfFunc()
 	return func(format string, a ...interface{}) {
 		c(w, format, a...)
-	}
-}
-
-func DebugHeader(md metadata.MD) {
-	printf := PrintfFunc(color.FgYellow, os.Stderr)
-
-	for k, vs := range md {
-		if k == "trailer" {
-			continue
-		}
-
-		for _, v := range vs {
-			printf("< %s: %s\n", k, v)
-		}
 	}
 }

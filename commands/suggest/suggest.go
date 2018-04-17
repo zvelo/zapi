@@ -2,21 +2,16 @@ package suggest
 
 import (
 	"context"
-	"net/http"
-	"os"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
 	zapi "zvelo.io/go-zapi"
 	"zvelo.io/msg"
 	"zvelo.io/zapi/clients"
-	"zvelo.io/zapi/internal/zvelo"
-	"zvelo.io/zapi/timing"
+	"zvelo.io/zapi/results"
 	"zvelo.io/zapi/tokensourcer"
 )
 
@@ -82,8 +77,8 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, "zvelo.suggest")
-	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, "zvelo.suggest")
+	c.clients = clients.New(tokenSourcer, &c.debug)
 
 	return cli.Command{
 		Name:   "suggest",
@@ -162,8 +157,6 @@ func (c *cmd) action(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	ctx = timing.Context(ctx, c.debug)
-
 	if c.rest {
 		return c.suggestREST(ctx)
 	}
@@ -172,44 +165,32 @@ func (c *cmd) action(_ *cli.Context) error {
 }
 
 func (c *cmd) suggestGRPC(ctx context.Context) error {
+	if c.trace {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-client-trace-id", results.TracingTag().String())
+	}
+
 	client, err := c.clients.GRPCv1(ctx)
 	if err != nil {
 		return err
 	}
 
-	var header metadata.MD
-	if _, err = client.Suggest(ctx, &c.suggestion, grpc.Header(&header)); err != nil {
+	if _, err = client.Suggest(ctx, &c.suggestion); err != nil {
 		return err
 	}
-
-	if c.debug {
-		zvelo.DebugHeader(header)
-	}
-
-	var traceID string
-	if tids, ok := header[zapi.TraceHeader]; ok && len(tids) > 0 {
-		traceID = tids[0]
-	}
-
-	complete(traceID)
 
 	return nil
 }
 
 func (c *cmd) suggestREST(ctx context.Context) error {
-	var resp *http.Response
-	if err := c.clients.RESTv1().Suggest(ctx, &c.suggestion, zapi.Response(&resp)); err != nil {
+	var opts []zapi.CallOption
+
+	if c.trace {
+		opts = append(opts, zapi.WithHeader("x-client-trace-id", results.TracingTag().String()))
+	}
+
+	if err := c.clients.RESTv1().Suggest(ctx, &c.suggestion, opts...); err != nil {
 		return err
 	}
 
-	complete(resp.Header.Get(zapi.TraceHeader))
-
 	return nil
-}
-
-func complete(traceID string) {
-	if traceID != "" {
-		printf := zvelo.PrintfFunc(color.FgCyan, os.Stderr)
-		printf("Trace ID: %s\n", traceID)
-	}
 }

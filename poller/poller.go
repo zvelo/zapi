@@ -3,13 +3,11 @@ package poller
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
 	"github.com/urfave/cli"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
 	zapi "zvelo.io/go-zapi"
@@ -20,12 +18,12 @@ import (
 )
 
 type Handler interface {
-	Result(context.Context, *results.Result) Requests
+	Result(context.Context, *msg.QueryResult) Requests
 }
 
-type HandlerFunc func(context.Context, *results.Result) Requests
+type HandlerFunc func(context.Context, *msg.QueryResult) Requests
 
-func (f HandlerFunc) Result(ctx context.Context, results *results.Result) Requests {
+func (f HandlerFunc) Result(ctx context.Context, results *msg.QueryResult) Requests {
 	return f(ctx, results)
 }
 
@@ -43,16 +41,18 @@ type Poller interface {
 type poller struct {
 	debug   *bool
 	rest    *bool
+	trace   *bool
 	clients clients.Clients
 
 	pollInterval time.Duration
 	once         bool
 }
 
-func New(debug, rest *bool, clients clients.Clients) Poller {
+func New(debug, rest, trace *bool, clients clients.Clients) Poller {
 	return &poller{
 		debug:   debug,
 		rest:    rest,
+		trace:   trace,
 		clients: clients,
 	}
 }
@@ -134,59 +134,55 @@ func (p *poller) pollRequest(ctx context.Context, reqID, url string, h Handler) 
 		pollFn = p.pollREST
 	}
 
-	var result results.Result
-
-	var err error
-	result.QueryResult, result.PollTraceID, err = pollFn(ctx, reqID)
-
+	result, err := pollFn(ctx, reqID)
 	if err != nil {
 		return nil, err
 	}
 
 	newRequests := Requests{}
 
-	if !zvelo.IsComplete(result.QueryResult) {
+	if !zvelo.IsComplete(result) {
 		newRequests[reqID] = url
 	}
 
-	for reqID, url := range h.Result(ctx, &result) {
+	for reqID, url := range h.Result(ctx, result) {
 		newRequests[reqID] = url
 	}
 
 	return newRequests, nil
 }
 
-func (p *poller) pollREST(ctx context.Context, reqID string) (result *msg.QueryResult, traceID string, err error) {
-	return pollREST(ctx, p.clients.RESTv1(), reqID)
+func (p *poller) pollREST(ctx context.Context, reqID string) (*msg.QueryResult, error) {
+	return pollREST(ctx, p.clients.RESTv1(), reqID, *p.debug, *p.trace)
 }
 
-func pollREST(ctx context.Context, client zapi.RESTv1Client, reqID string) (result *msg.QueryResult, traceID string, err error) {
-	var resp *http.Response
-	result, err = client.Result(ctx, reqID, zapi.Response(&resp))
-	if result != nil {
-		traceID = resp.Header.Get(zapi.TraceHeader)
+func pollREST(ctx context.Context, client zapi.RESTv1Client, reqID string, debug, trace bool) (*msg.QueryResult, error) {
+	var opts []zapi.CallOption
+
+	if trace {
+		opts = append(opts, zapi.WithHeader("x-client-trace-id", results.TracingTag().String()))
 	}
-	return result, traceID, err
+
+	result, err := client.Result(ctx, reqID, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
-func (p *poller) pollGRPC(ctx context.Context, reqID string) (*msg.QueryResult, string, error) {
+func (p *poller) pollGRPC(ctx context.Context, reqID string) (*msg.QueryResult, error) {
+	if *p.trace {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-client-trace-id", results.TracingTag().String())
+	}
+
 	client, err := p.clients.GRPCv1(ctx)
 	if err != nil {
-		return nil, "<`1`>", err
+		return nil, err
 	}
 
 	req := msg.RequestID{RequestId: reqID}
-	var header metadata.MD
-	result, err := client.Result(ctx, &req, grpc.Header(&header))
+	result, err := client.Result(ctx, &req)
 
-	if *p.debug {
-		zvelo.DebugHeader(header)
-	}
-
-	var traceID string
-	if tids, ok := header[zapi.TraceHeader]; ok && len(tids) > 0 {
-		traceID = tids[0]
-	}
-
-	return result, traceID, err
+	return result, err
 }

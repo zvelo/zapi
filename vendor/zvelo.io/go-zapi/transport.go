@@ -81,10 +81,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		)
 	}
 
-	if t.trace {
-		req.Header.Set(DebugHeader, zvelo.RandString(32))
-	}
-
+	req = zvelo.DebugRequestTiming(t.debug, req)
 	zvelo.DebugRequestOut(t.debug, req)
 
 	res, err := t.transport.RoundTrip(req)

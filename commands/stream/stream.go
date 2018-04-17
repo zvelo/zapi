@@ -8,13 +8,12 @@ import (
 	"zvelo.io/msg"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/results"
-	"zvelo.io/zapi/timing"
 	"zvelo.io/zapi/tokensourcer"
 )
 
 type cmd struct {
-	debug, trace, rest, json bool
-	clients                  clients.Clients
+	debug, rest, json bool
+	clients           clients.Clients
 }
 
 func (c *cmd) Flags() []cli.Flag {
@@ -24,12 +23,6 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_DEBUG",
 			Usage:       "enable debug logging",
 			Destination: &c.debug,
-		},
-		cli.BoolFlag{
-			Name:        "trace",
-			EnvVar:      "ZVELO_TRACE",
-			Usage:       "request a trace to be generated for each request",
-			Destination: &c.trace,
 		},
 		cli.BoolFlag{
 			Name:        "rest",
@@ -48,8 +41,8 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, "zvelo.stream")
-	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, "zvelo.stream")
+	c.clients = clients.New(tokenSourcer, &c.debug)
 
 	return cli.Command{
 		Name:   "stream",
@@ -87,7 +80,7 @@ func (c *cmd) streamREST(ctx context.Context) (streamClient, error) {
 }
 
 func (c *cmd) handle(client constructor) error {
-	ctx := timing.Context(context.Background(), c.debug)
+	ctx := context.Background()
 
 	stream, err := client(ctx)
 	if err != nil {
@@ -111,6 +104,6 @@ func (c *cmd) handle(client constructor) error {
 			return err
 		}
 
-		results.Print(&results.Result{QueryResult: result}, c.json)
+		results.Print(result, c.json)
 	}
 }

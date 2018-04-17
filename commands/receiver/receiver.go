@@ -105,7 +105,7 @@ func (c *cmd) callbackHandler() callback.Handler {
 		w.WriteHeader(http.StatusOK)
 
 		if c.debug || zvelo.IsComplete(result) {
-			results.Print(&results.Result{QueryResult: result}, c.json)
+			results.Print(result, c.json)
 		}
 	})
 }

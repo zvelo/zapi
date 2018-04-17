@@ -393,8 +393,8 @@
     "tokensource",
     "userauth"
   ]
-  revision = "8d347da779044cc4673e851a17d645178c77fef6"
-  version = "v1.9.8"
+  revision = "2fe5d37c264de11fb043fd9eec5bc5e5102ebef6"
+  version = "v1.10.0"
 
 [[projects]]
   name = "zvelo.io/httpsig"
@@ -426,6 +426,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7f7b40db86525f89faa4cd19f44bde143da4d4f7d3c9496f8e3bafd70af49ef3"
+  inputs-digest = "944e56e489794241f52851999bfdd995c42b2fcb271b43701fdfa1dda3620eb8"
   solver-name = "gps-cdcl"
   solver-version = 1

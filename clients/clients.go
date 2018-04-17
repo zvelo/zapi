@@ -16,10 +16,9 @@ type Clients interface {
 	GRPCv1(context.Context) (zapi.GRPCv1Client, error)
 }
 
-func New(tokenSourcer tokensourcer.TokenSourcer, debug, trace *bool) Clients {
+func New(tokenSourcer tokensourcer.TokenSourcer, debug *bool) Clients {
 	return &data{
 		debug:        debug,
-		trace:        trace,
 		TokenSourcer: tokenSourcer,
 	}
 }
@@ -31,7 +30,7 @@ type data struct {
 
 	// passed to constructor
 	tokensourcer.TokenSourcer
-	debug, trace *bool
+	debug *bool
 
 	// from flags
 	addr                  string
@@ -68,10 +67,6 @@ func (d *data) zapiOpts() []zapi.Option {
 
 	if *d.debug {
 		zapiOpts = append(zapiOpts, zapi.WithDebug(os.Stderr))
-	}
-
-	if *d.trace {
-		zapiOpts = append(zapiOpts, zapi.WithTrace())
 	}
 
 	if d.tlsInsecureSkipVerify {

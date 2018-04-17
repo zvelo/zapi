@@ -5,19 +5,16 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
 	zapi "zvelo.io/go-zapi"
 	"zvelo.io/zapi/clients"
-	"zvelo.io/zapi/internal/zvelo"
-	"zvelo.io/zapi/timing"
+	"zvelo.io/zapi/results"
 	"zvelo.io/zapi/tokensourcer"
 )
 
@@ -60,8 +57,8 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, strings.Fields(zapi.DefaultScopes)...)
-	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
+	c.clients = clients.New(tokenSourcer, &c.debug)
 
 	return cli.Command{
 		Name:   "graphql",
@@ -103,19 +100,15 @@ func (c *cmd) action(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	ctx = timing.Context(ctx, c.debug)
+	var opts []zapi.CallOption
 
-	var resp *http.Response
-	var result string
-	if err := c.clients.RESTv1().GraphQL(ctx, c.query, &result, zapi.Response(&resp)); err != nil {
-		return err
+	if c.trace {
+		opts = append(opts, zapi.WithHeader("x-client-trace-id", results.TracingTag().String()))
 	}
 
-	traceID := resp.Header.Get(zapi.TraceHeader)
-
-	if traceID != "" {
-		printf := zvelo.PrintfFunc(color.FgCyan, os.Stderr)
-		printf("Trace ID: %s\n", traceID)
+	var result string
+	if err := c.clients.RESTv1().GraphQL(ctx, c.query, &result, opts...); err != nil {
+		return err
 	}
 
 	fmt.Println(result)

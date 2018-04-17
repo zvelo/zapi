@@ -84,7 +84,7 @@ var idTokenTpl = template.Must(template.New("id_token").
 	Parse(idTokenTplStr))
 
 type cmd struct {
-	debug, trace bool
+	debug bool
 	tokensourcer.TokenSourcer
 	verifier *oidc.IDTokenVerifier
 }
@@ -97,18 +97,12 @@ func (c *cmd) Flags() []cli.Flag {
 			Usage:       "enable debug logging",
 			Destination: &c.debug,
 		},
-		cli.BoolFlag{
-			Name:        "trace",
-			EnvVar:      "ZVELO_TRACE",
-			Usage:       "request a trace to be generated for each request",
-			Destination: &c.trace,
-		},
 	)
 }
 
 func Command(appName string) cli.Command {
 	var c cmd
-	c.TokenSourcer = tokensourcer.New(appName, &c.debug, &c.trace, strings.Fields(zapi.DefaultScopes)...)
+	c.TokenSourcer = tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
 
 	return cli.Command{
 		Name:   "token",

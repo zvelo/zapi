@@ -19,7 +19,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 
@@ -32,7 +31,6 @@ import (
 	"zvelo.io/zapi/internal/zvelo"
 	"zvelo.io/zapi/poller"
 	"zvelo.io/zapi/results"
-	"zvelo.io/zapi/timing"
 	"zvelo.io/zapi/tokensourcer"
 )
 
@@ -325,9 +323,9 @@ func availableDS() []string {
 func Command(appName string) cli.Command {
 	c := cmd{appName: appName}
 
-	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, strings.Fields(zapi.DefaultScopes)...)
-	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
-	c.poller = poller.New(&c.debug, &c.rest, c.clients)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
+	c.clients = clients.New(tokenSourcer, &c.debug)
+	c.poller = poller.New(&c.debug, &c.rest, &c.trace, c.clients)
 
 	return cli.Command{
 		Name:      "query",
@@ -507,8 +505,6 @@ func (c *cmd) action(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	ctx = timing.Context(ctx, c.debug)
-
 	if c.callbackURL != "" && !c.noListen {
 		go func() {
 			debugWriter := io.Writer(nil)
@@ -558,13 +554,12 @@ func (c *cmd) action(_ *cli.Context) error {
 
 func (c *cmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poller.Requests, error) {
 	var replies *msg.QueryReplies
-	var traceID string
 	var err error
 
 	if c.rest {
-		replies, traceID, err = c.queryREST(ctx, queryReq)
+		replies, err = c.queryREST(ctx, queryReq)
 	} else {
-		replies, traceID, err = c.queryGRPC(ctx, queryReq)
+		replies, err = c.queryGRPC(ctx, queryReq)
 	}
 
 	if err != nil {
@@ -581,44 +576,43 @@ func (c *cmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poller.Re
 		}
 	}
 
-	return c.queryComplete(ctx, queryReq, traceID, replies), nil
+	return c.queryComplete(ctx, queryReq, replies), nil
 }
 
-func (c *cmd) queryREST(ctx context.Context, queryReq *msg.QueryRequests) (*msg.QueryReplies, string, error) {
-	var resp *http.Response
-	replies, err := c.clients.RESTv1().Query(ctx, queryReq, zapi.Response(&resp))
-	if err != nil {
-		return nil, "", err
+func (c *cmd) queryREST(ctx context.Context, queryReq *msg.QueryRequests) (*msg.QueryReplies, error) {
+	var opts []zapi.CallOption
+
+	if c.trace {
+		opts = append(opts, zapi.WithHeader("x-client-trace-id", results.TracingTag().String()))
 	}
 
-	return replies, resp.Header.Get(zapi.TraceHeader), nil
+	replies, err := c.clients.RESTv1().Query(ctx, queryReq, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return replies, nil
 }
 
-func (c *cmd) queryGRPC(ctx context.Context, queryReq *msg.QueryRequests) (*msg.QueryReplies, string, error) {
+func (c *cmd) queryGRPC(ctx context.Context, queryReq *msg.QueryRequests) (*msg.QueryReplies, error) {
+	if c.trace {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-client-trace-id", results.TracingTag().String())
+	}
+
 	client, err := c.clients.GRPCv1(ctx)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	var header metadata.MD
-	replies, err := client.Query(ctx, queryReq, grpc.Header(&header))
+	replies, err := client.Query(ctx, queryReq)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	if c.debug {
-		zvelo.DebugHeader(header)
-	}
-
-	var traceID string
-	if tids, ok := header[zapi.TraceHeader]; ok && len(tids) > 0 {
-		traceID = tids[0]
-	}
-
-	return replies, traceID, nil
+	return replies, nil
 }
 
-func (c *cmd) queryComplete(ctx context.Context, queryReq *msg.QueryRequests, traceID string, reply *msg.QueryReplies) poller.Requests {
+func (c *cmd) queryComplete(ctx context.Context, queryReq *msg.QueryRequests, reply *msg.QueryReplies) poller.Requests {
 	replies := reply.Reply
 
 	var buf bytes.Buffer
@@ -636,10 +630,6 @@ func (c *cmd) queryComplete(ctx context.Context, queryReq *msg.QueryRequests, tr
 			fmt.Fprintln(os.Stdout) // #nosec
 		}
 	}()
-
-	if traceID != "" {
-		fmt.Fprintf(w, "Trace ID:\t%s\n", traceID) // #nosec
-	}
 
 	ret := poller.Requests{}
 
@@ -688,8 +678,8 @@ func (c *cmd) queryComplete(ctx context.Context, queryReq *msg.QueryRequests, tr
 	return ret
 }
 
-func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Requests {
-	complete := zvelo.IsComplete(result.QueryResult)
+func (c *cmd) Result(ctx context.Context, result *msg.QueryResult) poller.Requests {
+	complete := zvelo.IsComplete(result)
 
 	if complete || c.poller.Once() {
 		defer c.queries.Done(result.RequestId)
@@ -758,6 +748,6 @@ func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Request
 func (c *cmd) callbackHandler(ctx context.Context) callback.Handler {
 	return callback.HandlerFunc(func(w http.ResponseWriter, _ *http.Request, result *msg.QueryResult) {
 		w.WriteHeader(http.StatusOK)
-		c.Result(ctx, &results.Result{QueryResult: result})
+		c.Result(ctx, result)
 	})
 }

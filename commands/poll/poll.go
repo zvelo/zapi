@@ -9,11 +9,11 @@ import (
 	"github.com/urfave/cli"
 
 	zapi "zvelo.io/go-zapi"
+	"zvelo.io/msg"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/internal/zvelo"
 	"zvelo.io/zapi/poller"
 	"zvelo.io/zapi/results"
-	"zvelo.io/zapi/timing"
 	"zvelo.io/zapi/tokensourcer"
 )
 
@@ -64,9 +64,9 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.trace, strings.Fields(zapi.DefaultScopes)...)
-	c.clients = clients.New(tokenSourcer, &c.debug, &c.trace)
-	c.poller = poller.New(&c.debug, &c.rest, c.clients)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
+	c.clients = clients.New(tokenSourcer, &c.debug)
+	c.poller = poller.New(&c.debug, &c.rest, &c.trace, c.clients)
 
 	return cli.Command{
 		Name:      "poll",
@@ -96,15 +96,13 @@ func (c *cmd) action(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	ctx = timing.Context(ctx, c.debug)
-
 	c.poller.Poll(ctx, c.requests, c)
 
 	return nil
 }
 
-func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Requests {
-	if complete := zvelo.IsComplete(result.QueryResult); complete || c.debug {
+func (c *cmd) Result(ctx context.Context, result *msg.QueryResult) poller.Requests {
+	if complete := zvelo.IsComplete(result); complete || c.debug {
 		results.Print(result, c.json)
 	}
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/gogo/protobuf/jsonpb"
+	"github.com/segmentio/ksuid"
 
 	"google.golang.org/grpc/codes"
 
@@ -17,11 +18,6 @@ import (
 )
 
 var jsonMarshaler = jsonpb.Marshaler{OrigName: true}
-
-type Result struct {
-	*msg.QueryResult
-	PollTraceID string
-}
 
 var queryResultTplStr = `
 {{define "DataSet" -}}
@@ -68,8 +64,8 @@ Error Code:         {{errorcode .Code}}
 {{- end}}`
 
 var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.FuncMap{
-	"complete": func(result Result) string {
-		if !zvelo.IsComplete(result.QueryResult) {
+	"complete": func(result *msg.QueryResult) string {
+		if !zvelo.IsComplete(result) {
 			return "false"
 		}
 
@@ -83,16 +79,11 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 	},
 }).Parse(queryResultTplStr))
 
-func Print(result *Result, json bool) {
+func Print(result *msg.QueryResult, json bool) {
 	fmt.Fprintf(os.Stderr, "\nreceived result\n")
 
-	if traceID := result.PollTraceID; traceID != "" {
-		printf := zvelo.PrintfFunc(color.FgCyan, os.Stderr)
-		printf("Trace ID:           %s\n", traceID)
-	}
-
 	if json {
-		if err := jsonMarshaler.Marshal(os.Stdout, result.QueryResult); err != nil {
+		if err := jsonMarshaler.Marshal(os.Stdout, result); err != nil {
 			zvelo.Errorf("marshal error: %s\n", err)
 		}
 		fmt.Fprintln(os.Stdout)
@@ -106,4 +97,11 @@ func Print(result *Result, json bool) {
 
 	printf := zvelo.PrintfFunc(color.FgCyan, os.Stdout)
 	printf(buf.String())
+}
+
+func TracingTag() ksuid.KSUID {
+	id := ksuid.New()
+	printf := zvelo.PrintfFunc(color.FgCyan, os.Stdout)
+	printf("Tracing Tag: guid:x-client-trace-id=%s\n", id)
+	return id
 }
