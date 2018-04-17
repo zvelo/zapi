@@ -30,7 +30,7 @@
 
 [[constraint]]
   name = "zvelo.io/go-zapi"
-  version = "~1.9.6"
+  version = "~1.9.7"
 
 [[constraint]]
   name = "zvelo.io/httpsig"
