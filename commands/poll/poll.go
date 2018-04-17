@@ -13,6 +13,7 @@ import (
 	"zvelo.io/zapi/internal/zvelo"
 	"zvelo.io/zapi/poller"
 	"zvelo.io/zapi/results"
+	"zvelo.io/zapi/timing"
 	"zvelo.io/zapi/tokensourcer"
 )
 
@@ -94,6 +95,8 @@ func (c *cmd) setup(cli *cli.Context) error {
 func (c *cmd) action(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
+
+	ctx = timing.Context(ctx, c.debug)
 
 	c.poller.Poll(ctx, c.requests, c)
 

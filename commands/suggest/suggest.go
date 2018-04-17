@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
@@ -15,11 +16,13 @@ import (
 	"zvelo.io/msg"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/internal/zvelo"
+	"zvelo.io/zapi/timing"
 	"zvelo.io/zapi/tokensourcer"
 )
 
 type cmd struct {
 	debug, trace, rest bool
+	timeout            time.Duration
 	clients            clients.Clients
 	categories         cli.StringSlice
 	malicious          cli.StringSlice
@@ -46,6 +49,13 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_REST",
 			Usage:       "Use REST instead of gRPC for api requests",
 			Destination: &c.rest,
+		},
+		cli.DurationFlag{
+			Name:        "timeout",
+			EnvVar:      "ZVELO_TIMEOUT",
+			Usage:       "maximum amount of time to wait for results to complete",
+			Value:       15 * time.Minute,
+			Destination: &c.timeout,
 		},
 		cli.StringFlag{
 			Name:        "url",
@@ -149,7 +159,10 @@ func (c *cmd) setup(_ *cli.Context) error {
 }
 
 func (c *cmd) action(_ *cli.Context) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+
+	ctx = timing.Context(ctx, c.debug)
 
 	if c.rest {
 		return c.suggestREST(ctx)

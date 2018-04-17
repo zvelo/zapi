@@ -13,6 +13,7 @@ import (
 	"zvelo.io/go-zapi/clientauth"
 	"zvelo.io/go-zapi/tokensource"
 	"zvelo.io/go-zapi/userauth"
+	"zvelo.io/zapi/timing"
 )
 
 type TokenSourcer interface {
@@ -196,9 +197,7 @@ func (d *data) TokenSource() oauth2.TokenSource {
 			d.tokenSource = oauth2.ReuseTokenSource(nil, d.tokenSource)
 		}
 
-		if *d.debug {
-			d.tokenSource = tokensource.Log(os.Stderr, d.tokenSource)
-		}
+		d.tokenSource = timing.TokenSource(d.tokenSource, *d.debug)
 	}
 
 	return d.tokenSource

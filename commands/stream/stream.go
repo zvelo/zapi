@@ -8,6 +8,7 @@ import (
 	"zvelo.io/msg"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/results"
+	"zvelo.io/zapi/timing"
 	"zvelo.io/zapi/tokensourcer"
 )
 
@@ -62,7 +63,7 @@ type streamClient interface {
 	Recv() (*msg.QueryResult, error)
 }
 
-type constructor func() (streamClient, error)
+type constructor func(context.Context) (streamClient, error)
 
 func (c *cmd) action(_ *cli.Context) error {
 	if c.rest {
@@ -72,21 +73,23 @@ func (c *cmd) action(_ *cli.Context) error {
 	return c.handle(c.streamGRPC)
 }
 
-func (c *cmd) streamGRPC() (streamClient, error) {
-	client, err := c.clients.GRPCv1(context.Background())
+func (c *cmd) streamGRPC(ctx context.Context) (streamClient, error) {
+	client, err := c.clients.GRPCv1(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return client.Stream(context.Background(), nil)
+	return client.Stream(ctx, nil)
 }
 
-func (c *cmd) streamREST() (streamClient, error) {
-	return c.clients.RESTv1().Stream(context.Background())
+func (c *cmd) streamREST(ctx context.Context) (streamClient, error) {
+	return c.clients.RESTv1().Stream(ctx)
 }
 
 func (c *cmd) handle(client constructor) error {
-	stream, err := client()
+	ctx := timing.Context(context.Background(), c.debug)
+
+	stream, err := client(ctx)
 	if err != nil {
 		return err
 	}
@@ -97,7 +100,7 @@ func (c *cmd) handle(client constructor) error {
 		if err == io.EOF {
 			// try to reconnect
 
-			if stream, err = client(); err != nil {
+			if stream, err = client(ctx); err != nil {
 				return err
 			}
 

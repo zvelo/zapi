@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"text/template"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/gogo/protobuf/jsonpb"
@@ -22,8 +21,6 @@ var jsonMarshaler = jsonpb.Marshaler{OrigName: true}
 type Result struct {
 	*msg.QueryResult
 	PollTraceID string
-	PollStart   time.Time
-	Start       time.Time
 }
 
 var queryResultTplStr = `
@@ -64,8 +61,6 @@ Error Code:         {{errorcode .Code}}
 {{end}}
 {{- if .RequestId}}Request ID:         {{.RequestId}}
 {{end}}
-{{- if poll .}}Poll Duration:      {{poll .}}
-{{end}}
 {{- if complete .}}Complete:           {{complete .}}
 {{end}}
 {{- if .ResponseDataset}}{{template "DataSet" .ResponseDataset}}{{end}}
@@ -78,16 +73,6 @@ var queryResultTpl = template.Must(template.New("QueryResult").Funcs(template.Fu
 			return "false"
 		}
 
-		if result.Start != (time.Time{}) {
-			return time.Since(result.Start).String()
-		}
-
-		return ""
-	},
-	"poll": func(result Result) string {
-		if result.PollStart != (time.Time{}) {
-			return time.Since(result.PollStart).String()
-		}
 		return ""
 	},
 	"httpStatus": func(i int32) string {

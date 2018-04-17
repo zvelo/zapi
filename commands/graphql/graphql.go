@@ -17,6 +17,7 @@ import (
 	zapi "zvelo.io/go-zapi"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/internal/zvelo"
+	"zvelo.io/zapi/timing"
 	"zvelo.io/zapi/tokensourcer"
 )
 
@@ -101,6 +102,8 @@ func (c *cmd) setup(_ *cli.Context) error {
 func (c *cmd) action(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
+
+	ctx = timing.Context(ctx, c.debug)
 
 	var resp *http.Response
 	var result string

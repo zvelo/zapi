@@ -134,9 +134,7 @@ func (p *poller) pollRequest(ctx context.Context, reqID, url string, h Handler) 
 		pollFn = p.pollREST
 	}
 
-	result := results.Result{
-		PollStart: time.Now(),
-	}
+	var result results.Result
 
 	var err error
 	result.QueryResult, result.PollTraceID, err = pollFn(ctx, reqID)

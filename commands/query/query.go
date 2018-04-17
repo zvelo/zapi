@@ -32,6 +32,7 @@ import (
 	"zvelo.io/zapi/internal/zvelo"
 	"zvelo.io/zapi/poller"
 	"zvelo.io/zapi/results"
+	"zvelo.io/zapi/timing"
 	"zvelo.io/zapi/tokensourcer"
 )
 
@@ -74,7 +75,6 @@ type cmd struct {
 }
 
 type queryData struct {
-	start        time.Time
 	key          string
 	reqID        string
 	redirectFrom *queryData
@@ -88,7 +88,7 @@ type queries struct {
 	wg       sync.WaitGroup
 }
 
-func (q *queries) Add(start time.Time, key string) {
+func (q *queries) Add(key string) {
 	q.Lock()
 	defer q.Unlock()
 
@@ -97,8 +97,7 @@ func (q *queries) Add(start time.Time, key string) {
 	}
 
 	q.internal[key] = &queryData{
-		start: start,
-		key:   key,
+		key: key,
 	}
 
 	q.wg.Add(1)
@@ -170,18 +169,6 @@ func (q *queries) Done(reqID string) {
 		d.done = true
 		q.wg.Done()
 	}
-}
-
-func (q *queries) StartTime(reqID string) time.Time {
-	q.RLock()
-	defer q.RUnlock()
-
-	d, ok := q.reqs[reqID]
-	if !ok {
-		panic(fmt.Errorf("couldn't get start time for reqID %q", reqID))
-	}
-
-	return d.start
 }
 
 func (q *queries) Wait() {
@@ -520,6 +507,8 @@ func (c *cmd) action(_ *cli.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
+	ctx = timing.Context(ctx, c.debug)
+
 	if c.callbackURL != "" && !c.noListen {
 		go func() {
 			debugWriter := io.Writer(nil)
@@ -568,8 +557,6 @@ func (c *cmd) action(_ *cli.Context) error {
 }
 
 func (c *cmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poller.Requests, error) {
-	start := time.Now()
-
 	var replies *msg.QueryReplies
 	var traceID string
 	var err error
@@ -586,15 +573,15 @@ func (c *cmd) query(ctx context.Context, queryReq *msg.QueryRequests) (poller.Re
 
 	if !c.noPoll || (c.callbackURL != "" && !c.noListen) {
 		for _, u := range queryReq.Url {
-			c.queries.Add(start, u)
+			c.queries.Add(u)
 		}
 
 		for _, u := range queryReq.Content {
-			c.queries.Add(start, u.Url+u.Content)
+			c.queries.Add(u.Url + u.Content)
 		}
 	}
 
-	return c.queryComplete(ctx, start, queryReq, traceID, replies), nil
+	return c.queryComplete(ctx, queryReq, traceID, replies), nil
 }
 
 func (c *cmd) queryREST(ctx context.Context, queryReq *msg.QueryRequests) (*msg.QueryReplies, string, error) {
@@ -631,7 +618,7 @@ func (c *cmd) queryGRPC(ctx context.Context, queryReq *msg.QueryRequests) (*msg.
 	return replies, traceID, nil
 }
 
-func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.QueryRequests, traceID string, reply *msg.QueryReplies) poller.Requests {
+func (c *cmd) queryComplete(ctx context.Context, queryReq *msg.QueryRequests, traceID string, reply *msg.QueryReplies) poller.Requests {
 	replies := reply.Reply
 
 	var buf bytes.Buffer
@@ -652,10 +639,6 @@ func (c *cmd) queryComplete(ctx context.Context, start time.Time, queryReq *msg.
 
 	if traceID != "" {
 		fmt.Fprintf(w, "Trace ID:\t%s\n", traceID) // #nosec
-	}
-
-	if c.debug {
-		fmt.Fprintf(w, "Query Duration:\t%s\n", time.Since(start)) // #nosec
 	}
 
 	ret := poller.Requests{}
@@ -711,8 +694,6 @@ func (c *cmd) Result(ctx context.Context, result *results.Result) poller.Request
 	if complete || c.poller.Once() {
 		defer c.queries.Done(result.RequestId)
 	}
-
-	result.Start = c.queries.StartTime(result.RequestId)
 
 	qs := result.QueryStatus
 
