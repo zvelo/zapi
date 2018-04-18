@@ -49,7 +49,7 @@ func goBuild(ctx build.Context, args ...string) error {
 		return err
 	}
 
-	args = append([]string{"build", "-i", "-ldflags", ld}, args...)
+	args = append([]string{"build", "-ldflags", ld}, args...)
 	return sh.RunWith(ctxToEnv(ctx), goexe, args...)
 }
 

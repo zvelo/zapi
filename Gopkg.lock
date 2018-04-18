@@ -29,7 +29,7 @@
   branch = "v2"
   name = "github.com/coreos/go-oidc"
   packages = ["."]
-  revision = "065b426bd41667456c1a924468f507673629c46b"
+  revision = "1180514eaf4d9f38d0d19eef639a1d695e066e72"
 
 [[projects]]
   name = "github.com/fatih/color"
@@ -71,7 +71,7 @@
   branch = "master"
   name = "github.com/go-openapi/spec"
   packages = ["."]
-  revision = "370d9e047557906322be8396e77cb0376be6cb96"
+  revision = "bcff419492eeeb01f76e77d2ebc714dc97b607f5"
 
 [[projects]]
   branch = "master"
@@ -130,7 +130,7 @@
     "log",
     "trace"
   ]
-  revision = "ed9b13336e26e0898dc4962069ef2317e9475157"
+  revision = "9ebf33af539ab8cb832c7107bc0a978ca8dbc0de"
 
 [[projects]]
   name = "github.com/grpc-ecosystem/grpc-gateway"
@@ -156,8 +156,8 @@
     "target",
     "types"
   ]
-  revision = "ab3ca2f6f85577d7ec82e0a6df721147a2e737f9"
-  version = "v2.0.1"
+  revision = "771ebed3d686dce3d36cab4fc9ee55c295ed8905"
+  version = "2.1"
 
 [[projects]]
   branch = "master"
@@ -201,7 +201,7 @@
     "ext",
     "log"
   ]
-  revision = "8013ba5856cd701278d1111c5b4dd69e580a86c9"
+  revision = "6c572c00d1830223701e155de97408483dfcd14a"
 
 [[projects]]
   branch = "master"
@@ -243,7 +243,7 @@
     "ed25519",
     "ed25519/internal/edwards25519"
   ]
-  revision = "f70185d77e8278766928032ee1355e3da47e7181"
+  revision = "d6449816ce06963d9d136eee5a56fca5b0616e7e"
 
 [[projects]]
   branch = "master"
@@ -251,6 +251,7 @@
   packages = [
     "context",
     "context/ctxhttp",
+    "http/httpguts",
     "http2",
     "http2/hpack",
     "idna",
@@ -258,7 +259,7 @@
     "lex/httplex",
     "trace"
   ]
-  revision = "61147c48b25b599e5b561d2e9c4f3e1ef489ca41"
+  revision = "8d16fa6dc9a85c1cd3ed24ad08ff21cf94f10888"
 
 [[projects]]
   branch = "master"
@@ -271,13 +272,13 @@
     "jws",
     "jwt"
   ]
-  revision = "921ae394b9430ed4fb549668d7b087601bd60a81"
+  revision = "6881fee410a5daf86371371f9ad451b95e168b71"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "3b87a42e500a6dc65dae1a55d0b641295971163e"
+  revision = "b126b21c05a91c856b027c16779c12e3bf236954"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -325,7 +326,7 @@
     "googleapis/api/annotations",
     "googleapis/rpc/status"
   ]
-  revision = "51d0944304c3cbce4afe9e5247e21100037bff78"
+  revision = "7fd901a49ba6a7f87732eb344f6e3c5b19d1b200"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -393,8 +394,8 @@
     "tokensource",
     "userauth"
   ]
-  revision = "2fe5d37c264de11fb043fd9eec5bc5e5102ebef6"
-  version = "v1.10.0"
+  revision = "ab42c6e973100b372d0470dd6bdebce9dd2dc92e"
+  version = "v1.10.1"
 
 [[projects]]
   name = "zvelo.io/httpsig"
@@ -414,18 +415,18 @@
     "mock",
     "status"
   ]
-  revision = "28363cddc3b79f5fa982b7b87a2829cad3de3f2d"
-  version = "v1.12.8"
+  revision = "47c8765a4302633e0168560f7bab6923b868d1d3"
+  version = "v1.13.0"
 
 [[projects]]
   name = "zvelo.io/zmage"
   packages = ["."]
-  revision = "08a6854872f37a26ef1ef6c90b60d0ce16aaff2a"
-  version = "v3.2.0"
+  revision = "a60a30727820bd07ddb4d1437a99461003eba7c9"
+  version = "v3.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "944e56e489794241f52851999bfdd995c42b2fcb271b43701fdfa1dda3620eb8"
+  inputs-digest = "c56dbac307d0cdcd523e55aaa7dc9afb6607f20617057c090297539c01033c71"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -43,7 +43,7 @@ func goFiles() ([]string, error) {
 		}
 
 		if filepath.Ext(path) == ".go" {
-			goFileData.data = append(goFileData.data, path)
+			goFileData.data = append(goFileData.data, "."+string(filepath.Separator)+path)
 		}
 
 		return nil

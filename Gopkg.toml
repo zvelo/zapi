@@ -30,7 +30,7 @@
 
 [[constraint]]
   name = "zvelo.io/go-zapi"
-  version = "~1.10.0"
+  version = "~1.10.1"
 
 [[constraint]]
   name = "zvelo.io/httpsig"
@@ -38,7 +38,7 @@
 
 [[constraint]]
   name = "zvelo.io/msg"
-  version = "~1.12.8"
+  version = "~1.13.0"
 
 [[override]]
   name = "github.com/graph-gophers/graphql-go"

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/graph-gophers/graphql-go"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -72,46 +71,6 @@ func timeoutDecode(s string) (time.Duration, error) {
 	return d * time.Duration(t), nil
 }
 
-var incomingHeaders = map[string]string{
-	"zvelo-debug-id": "zvelo-debug-id",
-	"uber-trace-id":  "uber-trace-id",
-}
-
-var outgoingHeaders = map[string]string{
-	"zvelo-trace-id": "zvelo-trace-id",
-	"server-timing":  "server-timing",
-	"content-type":   "",
-	"trailer":        "",
-}
-
-func IncomingHeaderMatcher(name string) (string, bool) {
-	if n, ok := runtime.DefaultHeaderMatcher(name); ok {
-		return n, ok
-	}
-
-	if n, ok := incomingHeaders[strings.ToLower(name)]; ok {
-		if n == "" {
-			return n, false
-		}
-
-		return n, true
-	}
-
-	return "", false
-}
-
-func OutgoingHeaderMatcher(name string) (string, bool) {
-	if n, ok := outgoingHeaders[strings.ToLower(name)]; ok {
-		if n == "" {
-			return n, false
-		}
-
-		return n, true
-	}
-
-	return fmt.Sprintf("%s%s", runtime.MetadataHeaderPrefix, name), true
-}
-
 func annotateContext(req *http.Request) (context.Context, context.CancelFunc, error) {
 	var pairs []string
 	ctx := req.Context()
@@ -127,16 +86,9 @@ func annotateContext(req *http.Request) (context.Context, context.CancelFunc, er
 		}
 	}
 
-	if timeout != 0 {
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-	}
-
-	for k, vs := range req.Header {
-		var ok bool
-		if k, ok = IncomingHeaderMatcher(k); ok {
-			for _, v := range vs {
-				pairs = append(pairs, k, v)
-			}
+	for key, vals := range req.Header {
+		for _, val := range vals {
+			pairs = append(pairs, key, val)
 		}
 	}
 
@@ -154,6 +106,10 @@ func annotateContext(req *http.Request) (context.Context, context.CancelFunc, er
 				pairs = append(pairs, strings.ToLower(xForwardedFor), fmt.Sprintf("%s, %s", fwd, remoteIP))
 			}
 		}
+	}
+
+	if timeout != 0 {
+		ctx, cancel = context.WithTimeout(ctx, timeout)
 	}
 
 	if len(pairs) == 0 {
@@ -215,11 +171,8 @@ func (h relay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer md.Unlock()
 
 	for k, vs := range md.Header {
-		var ok bool
-		if k, ok = OutgoingHeaderMatcher(k); ok {
-			for _, v := range vs {
-				w.Header().Add(k, v)
-			}
+		for _, v := range vs {
+			w.Header().Add(k, v)
 		}
 	}
 

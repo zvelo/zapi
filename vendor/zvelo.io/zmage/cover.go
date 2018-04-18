@@ -51,10 +51,6 @@ func appendCoverage(w io.Writer, fileName string) error {
 func CoverOnly(flags ...string) error {
 	flags = append(flags, "-race")
 
-	if err := installTestDeps(flags...); err != nil {
-		return err
-	}
-
 	pkgs, err := GoPackages(build.Default)
 	if err != nil {
 		return err

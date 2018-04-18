@@ -104,13 +104,6 @@ func branch() (string, error) {
 	return branchData.data, branchData.err
 }
 
-func installTestDeps(flags ...string) error {
-	args := append([]string{"test", "-i"}, flags...)
-	args = append(args, "./...")
-
-	return sh.RunWith(env, goexe, args...)
-}
-
 func GoVet() error {
 	return sh.RunWith(env, goexe, "vet", "./...")
 }

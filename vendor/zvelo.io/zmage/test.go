@@ -13,10 +13,6 @@ func GoTest(ctx context.Context, flags ...string) error {
 
 	flags = append(flags, "-race")
 
-	if err := installTestDeps(flags...); err != nil {
-		return err
-	}
-
 	var args []string
 	testcmd := strings.Split(gotest, " ")
 

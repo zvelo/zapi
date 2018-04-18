@@ -102,7 +102,7 @@ func GoLint(ctx context.Context) error {
 			return err
 		}
 
-		args = append(args, dir)
+		args = append(args, "."+string(filepath.Separator)+dir)
 	}
 
 	pr, pw := io.Pipe()
