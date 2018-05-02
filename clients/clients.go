@@ -33,19 +33,26 @@ type data struct {
 	debug *bool
 
 	// from flags
-	addr                  string
-	tlsInsecureSkipVerify bool
-	noTLS                 bool
+	restBaseURL, grpcTarget string
+	tlsInsecureSkipVerify   bool
+	noTLS                   bool
 }
 
 func (d *data) Flags() []cli.Flag {
 	return append(d.TokenSourcer.Flags(),
 		cli.StringFlag{
-			Name:        "addr",
-			EnvVar:      "ZVELO_ADDR",
-			Usage:       "address:port of the API endpoint",
-			Value:       zapi.DefaultAddr,
-			Destination: &d.addr,
+			Name:        "rest-base-url",
+			EnvVar:      "ZVELO_REST_BASE_URL",
+			Usage:       "base URL of the API endpoint",
+			Value:       zapi.DefaultRestBaseURL,
+			Destination: &d.restBaseURL,
+		},
+		cli.StringFlag{
+			Name:        "grpc-target",
+			EnvVar:      "ZVELO_GRPC_TARGET",
+			Usage:       "target for gRPC in the form of scheme://authority/endpoint_name",
+			Value:       zapi.DefaultGrpcTarget,
+			Destination: &d.grpcTarget,
 		},
 		cli.BoolFlag{
 			Name:        "tls-insecure-skip-verify",
@@ -61,9 +68,10 @@ func (d *data) Flags() []cli.Flag {
 }
 
 func (d *data) zapiOpts() []zapi.Option {
-	var zapiOpts []zapi.Option
-
-	zapiOpts = append(zapiOpts, zapi.WithAddr(d.addr))
+	zapiOpts := []zapi.Option{
+		zapi.WithRestBaseURL(d.restBaseURL),
+		zapi.WithGrpcTarget(d.grpcTarget),
+	}
 
 	if *d.debug {
 		zapiOpts = append(zapiOpts, zapi.WithDebug(os.Stderr))

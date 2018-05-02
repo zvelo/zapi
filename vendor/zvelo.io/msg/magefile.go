@@ -36,9 +36,12 @@ func ProtoGRPCGateway(ctx context.Context) error {
 	return err
 }
 
-// Protoset generates .protoset files from .proto files
-func Protoset(ctx context.Context) error {
-	_, err := zmage.Protoset("apiv1.proto")
+// Descriptor generates protobuf file descriptor set files from .proto files
+func Descriptor(ctx context.Context) error {
+	_, err := zmage.Descriptor("zvelo-api.protoset",
+		"apiv1.proto",
+		"health/health.proto",
+	)
 	return err
 }
 
@@ -85,7 +88,7 @@ func Static(ctx context.Context) error {
 
 // Generate all necessary files
 func Generate(ctx context.Context) error {
-	mg.CtxDeps(ctx, CheckImports, ProtoGo, ProtoPython, ProtoGRPCGateway, ProtoSwagger, Protoset, Static)
+	mg.CtxDeps(ctx, CheckImports, ProtoGo, ProtoPython, ProtoGRPCGateway, ProtoSwagger, Descriptor, Static)
 	return nil
 }
 
@@ -173,7 +176,7 @@ func GoVet(ctx context.Context) error {
 
 // Clean up after yourself
 func Clean(ctx context.Context) error {
-	return zmage.Clean()
+	return zmage.Clean("zvelo-api.protoset")
 }
 
 // GoPackages lists all the non-vendor packages in the repository

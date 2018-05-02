@@ -80,10 +80,13 @@ func protoBuildOne(preFn func() error, cmd, gwPkgDir string, files, args []strin
 		return err
 	}
 
-	args = append(args,
-		"-I../..",
-		"-I"+filepath.Join(gwPkgDir, "../third_party/googleapis"),
-	)
+	args = append(args, "-I../..")
+
+	if gwPkgDir != "" {
+		args = append(args,
+			"-I"+filepath.Join(gwPkgDir, "../third_party/googleapis"),
+		)
+	}
 
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -184,7 +187,14 @@ func installGogoZvelo() error {
 }
 
 func ProtoGo() ([]string, error) {
-	return protoBuild([]string{".pb.go"}, nil, installGogoZvelo, protoc, "--gozvelo_out=Mgoogle/protobuf/wrappers.proto=github.com/gogo/protobuf/types,plugins=grpc:../..")
+	return protoBuild([]string{".pb.go"}, nil, installGogoZvelo, protoc, "--gozvelo_out="+
+		"Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,"+
+		"Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,"+
+		"Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types,"+
+		"Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types,"+
+		"Mgoogle/protobuf/wrappers.proto=github.com/gogo/protobuf/types,"+
+		"plugins=grpc:../..",
+	)
 }
 
 var serviceRe = regexp.MustCompile(`^\s*option\s+\(google\.api\.http\)\s+=\s+{$`)
@@ -222,16 +232,81 @@ func ProtoPython() ([]string, error) {
 	)
 }
 
-func protoUsesFile(name string) func(string) (bool, error) {
+func protoUsesFiles(names ...string) func(string) (bool, error) {
 	return func(file string) (bool, error) {
-		return name == file, nil
+		for _, name := range names {
+			if name == file {
+				return true, nil
+			}
+		}
+		return false, nil
 	}
 }
 
-func Protoset(name string) ([]string, error) {
-	ext := ".protoset"
-	return protoBuild([]string{ext}, protoUsesFile(name), nil, protoc,
-		"--descriptor_set_out="+strings.Replace(name, ".proto", ext, -1),
+func Descriptor(out string, files ...string) ([]string, error) {
+	dirFiles, err := protoFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	gwPkg, err := build.Import("github.com/grpc-ecosystem/grpc-gateway/runtime", pwd, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	var modified bool
+
+	var localFiles []string
+	for _, dfs := range dirFiles {
+		for _, df := range dfs {
+			for _, f := range files {
+				if f == df {
+					var m bool
+					if m, err = Modified(out, f); err != nil {
+						return nil, err
+					}
+
+					if m {
+						modified = true
+					}
+
+					localFiles = append(localFiles, f)
+				}
+			}
+		}
+	}
+
+	if !modified {
+		return nil, nil
+	}
+
+	args := []string{
+		"--descriptor_set_out=" + out,
 		"--include_imports",
-	)
+	}
+
+	for _, f := range files {
+		var local bool
+		for _, lf := range localFiles {
+			if f == lf {
+				local = true
+				continue
+			}
+		}
+
+		if !local {
+			args = append(args, f)
+		}
+	}
+
+	if err = protoBuildOne(nil, protoc, gwPkg.Dir, localFiles, args); err != nil {
+		return nil, err
+	}
+
+	return []string{out}, nil
 }
