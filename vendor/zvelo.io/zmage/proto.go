@@ -2,6 +2,7 @@ package zmage
 
 import (
 	"bufio"
+	"errors"
 	"go/build"
 	"os"
 	"path/filepath"
@@ -222,6 +223,80 @@ func ProtoGRPCGateway() ([]string, error) {
 
 func ProtoSwagger() ([]string, error) {
 	return protoBuild([]string{".swagger.json"}, protoUsesGRPCGateway, nil, protoc, "--swagger_out=logtostderr=true:../..")
+}
+
+func ProtoJS(outDir string) error {
+	dirFiles, err := protoFiles()
+	if err != nil {
+		return err
+	}
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	gwPkg, err := build.Import("github.com/grpc-ecosystem/grpc-gateway/runtime", pwd, 0)
+	if err != nil {
+		return err
+	}
+
+	for dir, files := range dirFiles {
+		var out string
+		for _, file := range files {
+			var ok bool
+			if ok, err = protoUsesGRPCGateway(file); err != nil {
+				return err
+			}
+			if ok {
+				out = strings.Replace(file, ".proto", ".grpc.pb.js", -1)
+				out = filepath.Base(out)
+				out = filepath.Join(outDir, out)
+				break
+			}
+		}
+
+		if out == "" {
+			out = filepath.Join(dir, "service.grpc.pb.js")
+		}
+
+		args := []string{
+			"--js_out=import_style=closure,binary:" + outDir,
+			"--grpc-web_out=out=" + out + ",mode=grpcweb:.",
+		}
+
+		if err = protoBuildOne(nil, protoc, gwPkg.Dir, files, args); err != nil {
+			return err
+		}
+	}
+
+	if err = sh.Run(protoc,
+		"--js_out=import_style=closure,binary:js",
+		"google/protobuf/empty.proto",
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ClosureCompile(out, entryPoint, srcDir string) error {
+	grpcWebDir := os.Getenv("GRPC_WEB_DIR")
+	if grpcWebDir == "" {
+		return errors.New("$GRPC_WEB_DIR is not set")
+	}
+
+	return sh.Run("java",
+		"-jar", filepath.Join(grpcWebDir, "closure-compiler.jar"),
+		"--js", srcDir,
+		"--js", filepath.Join(grpcWebDir, "third_party/grpc/third_party/protobuf/js"),
+		"--js", filepath.Join(grpcWebDir, "third_party/closure-library"),
+		"--js", filepath.Join(grpcWebDir, "javascript"),
+		"--js", filepath.Join(grpcWebDir, "net"),
+		"--entry_point=goog:"+entryPoint,
+		"--dependency_mode=STRICT",
+		"--js_output_file", out,
+	)
 }
 
 func ProtoPython() ([]string, error) {

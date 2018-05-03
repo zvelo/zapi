@@ -222,7 +222,7 @@
     ".",
     "cacheobject"
   ]
-  revision = "525d0eb5f91d30e3b1548de401b7ef9ea6898520"
+  revision = "fd225a25f1983d116db58553068677ba03f51fa9"
 
 [[projects]]
   name = "github.com/segmentio/ksuid"
@@ -243,7 +243,7 @@
     "ed25519",
     "ed25519/internal/edwards25519"
   ]
-  revision = "613d6eafa307c6881a737a3c35c0e312e8d3a8c5"
+  revision = "1f94bef427e370e425e55b172f3b5e300ef38304"
 
 [[projects]]
   branch = "master"
@@ -259,7 +259,7 @@
     "lex/httplex",
     "trace"
   ]
-  revision = "5f9ae10d9af5b1c89ae6904293b14b064d4ada23"
+  revision = "640f4622ab692b87c2f3a94265e6f579fe38263d"
 
 [[projects]]
   branch = "master"
@@ -272,7 +272,7 @@
     "jws",
     "jwt"
   ]
-  revision = "6881fee410a5daf86371371f9ad451b95e168b71"
+  revision = "cdc340f7c179dbbfa4afd43b7614e8fcadde4269"
 
 [[projects]]
   branch = "master"
@@ -394,8 +394,8 @@
     "tokensource",
     "userauth"
   ]
-  revision = "da1c6bd83469425417c44db3aa6009ac0b92706b"
-  version = "v1.11.0"
+  revision = "94e0cbd0a6fd115ad929b1b68ec97f7bec75ce75"
+  version = "v1.11.1"
 
 [[projects]]
   name = "zvelo.io/httpsig"
@@ -421,12 +421,12 @@
 [[projects]]
   name = "zvelo.io/zmage"
   packages = ["."]
-  revision = "587e9df0c49e4ccf145a784ffb1027c56c62de2a"
-  version = "v4.0.2"
+  revision = "437fe99f59c40d0a137087136725b8b26895c98b"
+  version = "v4.1.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4094bd16b0c2a836275994431b1744348dce77b1d1559e0a3a6a4d5bac5b239f"
+  inputs-digest = "308666293a177ac85e22314a4502b251ccea291c642dc9155811fc21183e943a"
   solver-name = "gps-cdcl"
   solver-version = 1
