@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -71,17 +72,31 @@ var idTokenTpl = template.Must(template.New("id_token").
 			sort.Strings(keys)
 
 			for _, k := range keys {
-				v := i[k]
-				if v == nil || v == "" {
-					continue
-				}
-				fmt.Fprintf(w, "  %s: \t%v\n", k, v)
+				printClaim(w, "  ", k, i[k])
 			}
-			_ = w.Flush()
+			_ = w.Flush() // #nosec
 			return strings.TrimSpace(buf.String())
 		},
 	}).
 	Parse(idTokenTplStr))
+
+func printClaim(w io.Writer, prefix, k string, v interface{}) {
+	if v == nil || v == "" {
+		return
+	}
+
+	m, ok := v.(map[string]interface{})
+	if !ok {
+		fmt.Fprintf(w, "%s%s: \t%v\n", prefix, k, v)
+		return
+	}
+
+	fmt.Fprintf(w, "%s%s:\n", prefix, k)
+
+	for mk, mv := range m {
+		printClaim(w, prefix+"  ", mk, mv)
+	}
+}
 
 type cmd struct {
 	debug bool

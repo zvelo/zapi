@@ -2,6 +2,8 @@ package tokensourcer
 
 import (
 	"context"
+	"crypto/tls"
+	"net/http"
 	"os"
 	"strings"
 
@@ -10,6 +12,7 @@ import (
 
 	"golang.org/x/oauth2"
 
+	zapi "zvelo.io/go-zapi"
 	"zvelo.io/go-zapi/clientauth"
 	"zvelo.io/go-zapi/tokensource"
 	"zvelo.io/go-zapi/userauth"
@@ -39,15 +42,17 @@ type data struct {
 	debug   *bool
 
 	// from flags
-	accessToken            string
-	mockNoCredentials      bool
-	useUserCredentials     bool
-	redirectURL            string
-	callbackAddr           string
-	noOpenBrowser          bool
-	clientID, clientSecret string
-	noCacheToken           bool
-	scopesFlag             cli.StringSlice
+	accessToken        string
+	oauth2             oauth2.Config
+	mockNoCredentials  bool
+	useUserCredentials bool
+	redirectURL        string
+	callbackAddr       string
+	noOpenBrowser      bool
+	noCacheToken       bool
+	insecureSkipVerify bool
+	scopesFlag         cli.StringSlice
+	oidcIssuer         string
 
 	defaultScopes []string
 }
@@ -55,16 +60,37 @@ type data struct {
 func (d *data) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
+			Name:        "auth-url",
+			EnvVar:      "ZVELO_AUTH_URL",
+			Usage:       "oauth2 auth url",
+			Value:       zapi.Endpoint.AuthURL,
+			Destination: &d.oauth2.Endpoint.AuthURL,
+		},
+		cli.StringFlag{
+			Name:        "token-url",
+			EnvVar:      "ZVELO_TOKEN_URL",
+			Usage:       "oauth2 token url",
+			Value:       zapi.Endpoint.TokenURL,
+			Destination: &d.oauth2.Endpoint.TokenURL,
+		},
+		cli.StringFlag{
+			Name:        "oidc-issuer",
+			EnvVar:      "ZVELO_OIDC_ISSUER",
+			Usage:       "oidc issuer url",
+			Value:       "https://auth.zvelo.com",
+			Destination: &d.oidcIssuer,
+		},
+		cli.StringFlag{
 			Name:        "client-id",
 			EnvVar:      "ZVELO_CLIENT_ID",
 			Usage:       "oauth2 client id",
-			Destination: &d.clientID,
+			Destination: &d.oauth2.ClientID,
 		},
 		cli.StringFlag{
 			Name:        "client-secret",
 			EnvVar:      "ZVELO_CLIENT_SECRET",
 			Usage:       "oauth2 client secret",
-			Destination: &d.clientSecret,
+			Destination: &d.oauth2.ClientSecret,
 		},
 		cli.StringFlag{
 			Name:        "access-token",
@@ -115,16 +141,12 @@ func (d *data) Flags() []cli.Flag {
 			Usage:  "scopes to request with the token, may be repeated (default: " + strings.Join(d.defaultScopes, ", ") + ")",
 			Value:  &d.scopesFlag,
 		},
+		cli.BoolFlag{
+			Name:        "insecure-skip-verify",
+			Usage:       "accept any certificate presented by the server and any host name in that certificate. only for testing.",
+			Destination: &d.insecureSkipVerify,
+		},
 	}
-}
-
-func contains(set []string, val string) bool {
-	for _, v := range set {
-		if v == val {
-			return true
-		}
-	}
-	return false
 }
 
 func (d *data) scopes() []string {
@@ -161,6 +183,7 @@ func (d *data) TokenSource() oauth2.TokenSource {
 			userauth.WithRedirectURL(d.redirectURL),
 			userauth.WithScope(scopes...),
 			userauth.WithCallbackAddr(d.callbackAddr),
+			userauth.WithEndpoint(d.oauth2.Endpoint),
 		}
 
 		if d.noOpenBrowser {
@@ -171,14 +194,15 @@ func (d *data) TokenSource() oauth2.TokenSource {
 			userOpts = append(userOpts, userauth.WithDebug(os.Stderr))
 		}
 
-		d.tokenSource = userauth.TokenSource(context.Background(), d.clientID, d.clientSecret, userOpts...)
+		d.tokenSource = userauth.TokenSource(context.Background(), d.oauth2.ClientID, d.oauth2.ClientSecret, userOpts...)
 	} else {
 		cacheName = "client"
 		d.tokenSource = clientauth.ClientCredentials(
 			context.Background(),
-			d.clientID,
-			d.clientSecret,
+			d.oauth2.ClientID,
+			d.oauth2.ClientSecret,
 			clientauth.WithScope(scopes...),
+			clientauth.WithTokenURL(d.oauth2.Endpoint.TokenURL),
 		)
 	}
 
@@ -211,12 +235,25 @@ func (d *data) Verifier(ctx context.Context) (*oidc.IDTokenVerifier, error) {
 			continue
 		}
 
-		provider, err := oidc.NewProvider(ctx, "https://auth.zvelo.com")
+		if d.insecureSkipVerify {
+			if t, ok := http.DefaultTransport.(*http.Transport); ok {
+				prev := t.TLSClientConfig
+				t.TLSClientConfig = &tls.Config{
+					InsecureSkipVerify: true,
+				}
+
+				defer func() {
+					t.TLSClientConfig = prev
+				}()
+			}
+		}
+
+		provider, err := oidc.NewProvider(ctx, d.oidcIssuer)
 		if err != nil {
 			return nil, err
 		}
 
-		d.verifier = provider.Verifier(&oidc.Config{ClientID: d.clientID})
+		d.verifier = provider.Verifier(&oidc.Config{ClientID: d.oauth2.ClientID})
 		break
 	}
 
