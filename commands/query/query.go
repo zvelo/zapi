@@ -25,8 +25,8 @@ import (
 	"zvelo.io/go-zapi"
 	"zvelo.io/go-zapi/callback"
 	"zvelo.io/httpsig"
-	"zvelo.io/msg"
 	"zvelo.io/msg/mock"
+	msg "zvelo.io/msg/msgpb"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/internal/zvelo"
 	"zvelo.io/zapi/poller"
@@ -42,7 +42,7 @@ func defaultDatasets() []string {
 
 type cmd struct {
 	appName                  string
-	datasets                 []msg.DataSetType
+	datasets                 []msg.DatasetType
 	datasetStrings           cli.StringSlice
 	debug, trace, rest, json bool
 	timeout                  time.Duration
@@ -310,7 +310,7 @@ func (c *cmd) Flags() []cli.Flag {
 
 func availableDS() []string {
 	var ds []string
-	for dst, name := range msg.DataSetType_name {
+	for dst, name := range msg.DatasetType_name {
 		if dst == int32(msg.ECHO) {
 			continue
 		}
@@ -424,7 +424,7 @@ func (c *cmd) setupContents() error {
 	return nil
 }
 
-func (c *cmd) setupDataSets() error {
+func (c *cmd) setupDatasets() error {
 	if len(c.datasetStrings) == 0 {
 		c.datasetStrings = defaultDatasets()
 	}
@@ -432,7 +432,7 @@ func (c *cmd) setupDataSets() error {
 	for _, dsName := range c.datasetStrings {
 		dsName = strings.TrimSpace(dsName)
 
-		dst, err := msg.NewDataSetType(dsName)
+		dst, err := msg.NewDatasetType(dsName)
 		if err != nil {
 			zvelo.Errorf("invalid dataset type: %s\n", dsName)
 			continue
@@ -449,7 +449,7 @@ func (c *cmd) setupDataSets() error {
 }
 
 func (c *cmd) setup(cli *cli.Context) error {
-	if err := c.setupDataSets(); err != nil {
+	if err := c.setupDatasets(); err != nil {
 		return err
 	}
 

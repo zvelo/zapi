@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/urfave/cli"
-	"zvelo.io/msg"
+	msg "zvelo.io/msg/msgpb"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/results"
 	"zvelo.io/zapi/tokensourcer"

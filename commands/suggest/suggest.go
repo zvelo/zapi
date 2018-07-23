@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	zapi "zvelo.io/go-zapi"
-	"zvelo.io/msg"
+	msg "zvelo.io/msg/msgpb"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/results"
 	"zvelo.io/zapi/tokensourcer"
@@ -105,10 +105,10 @@ func (c *cmd) setup(_ *cli.Context) error {
 
 	if len(cats) > 0 {
 		if c.suggestion.Dataset == nil {
-			c.suggestion.Dataset = &msg.DataSet{}
+			c.suggestion.Dataset = &msg.Dataset{}
 		}
 
-		c.suggestion.Dataset.Categorization = &msg.DataSet_Categorization{
+		c.suggestion.Dataset.Categorization = &msg.Dataset_Categorization{
 			Value: cats,
 		}
 	}
@@ -128,20 +128,20 @@ func (c *cmd) setup(_ *cli.Context) error {
 
 	if len(malcats) > 0 {
 		if c.suggestion.Dataset == nil {
-			c.suggestion.Dataset = &msg.DataSet{}
+			c.suggestion.Dataset = &msg.Dataset{}
 		}
 
-		c.suggestion.Dataset.Malicious = &msg.DataSet_Malicious{
+		c.suggestion.Dataset.Malicious = &msg.Dataset_Malicious{
 			Category: malcats,
 		}
 	}
 
 	if c.notMalicious {
 		if c.suggestion.Dataset == nil {
-			c.suggestion.Dataset = &msg.DataSet{}
+			c.suggestion.Dataset = &msg.Dataset{}
 		}
 
-		c.suggestion.Dataset.Malicious = &msg.DataSet_Malicious{
+		c.suggestion.Dataset.Malicious = &msg.Dataset_Malicious{
 			Category: []msg.Category{},
 		}
 	}

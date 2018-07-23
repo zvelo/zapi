@@ -9,7 +9,7 @@ import (
 	"github.com/urfave/cli"
 
 	zapi "zvelo.io/go-zapi"
-	"zvelo.io/msg"
+	msg "zvelo.io/msg/msgpb"
 	"zvelo.io/zapi/clients"
 	"zvelo.io/zapi/internal/zvelo"
 	"zvelo.io/zapi/poller"

@@ -4,8 +4,8 @@
 [[projects]]
   name = "cloud.google.com/go"
   packages = ["compute/metadata"]
-  revision = "29f476ffa9c4cd4fd14336b6043090ac1ad76733"
-  version = "v0.21.0"
+  revision = "aad3f485ee528456e0768f20397b4d9dd941e755"
+  version = "v0.25.0"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -29,61 +29,61 @@
   branch = "v2"
   name = "github.com/coreos/go-oidc"
   packages = ["."]
-  revision = "1180514eaf4d9f38d0d19eef639a1d695e066e72"
+  revision = "8ae1da518bd4d9d5a5909090a184af30f336436d"
 
 [[projects]]
   name = "github.com/fatih/color"
   packages = ["."]
-  revision = "507f6050b8568533fb3f5504de8e5205fa62a114"
-  version = "v1.6.0"
+  revision = "5b77d2a35fb0ede96d138fc9a99f5c9b6aef11b4"
+  version = "v1.7.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/analysis"
   packages = ["."]
-  revision = "863ac7f90e00e88e507095639a8457bbbf3c2ec9"
+  revision = "3c8fe72ed5d307113ef76c7c3035964d7e4d4b73"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/errors"
   packages = ["."]
-  revision = "7bcb96a367bac6b76e6e42fa84155bb5581dcff8"
+  revision = "b2b2befaf267d082d779bcef52d682a47c779517"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/jsonpointer"
   packages = ["."]
   revision = "3a0015ad55fa9873f41605d3e8f28cd279c32ab2"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/jsonreference"
   packages = ["."]
   revision = "3fb327e6747da3043567ee86abd02bb6376b6be2"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/loads"
   packages = ["."]
   revision = "2a2b323bab96e6b1fdee110e57d959322446e9c9"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/spec"
   packages = ["."]
-  revision = "bcff419492eeeb01f76e77d2ebc714dc97b607f5"
+  revision = "bce47c9386f9ecd6b86f450478a80103c3fe1402"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/strfmt"
   packages = ["."]
-  revision = "481808443b00a14745fada967cb5eeff0f9b1df2"
+  revision = "913ee058e387ac83a67e2d9f13acecdcd5769fc6"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/swag"
   packages = ["."]
-  revision = "811b1089cde9dad18d4d0c2d09fbdbf28dbd27a5"
+  revision = "2b0bd4f193d011c203529df626a65d63cb8a79e8"
+  version = "0.15.0"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -93,8 +93,8 @@
     "sortkeys",
     "types"
   ]
-  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
-  version = "v1.0.0"
+  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -130,7 +130,7 @@
     "log",
     "trace"
   ]
-  revision = "9ebf33af539ab8cb832c7107bc0a978ca8dbc0de"
+  revision = "bb9738501bd42a6536227b96068349b814379d6e"
 
 [[projects]]
   name = "github.com/grpc-ecosystem/grpc-gateway"
@@ -139,14 +139,14 @@
     "runtime/internal",
     "utilities"
   ]
-  revision = "07f5e79768022f9a3265235f0db4ac8c3f675fec"
-  version = "v1.3.1"
+  revision = "92583770e3f01b09a0d3e9bdf64321d8bebd48f2"
+  version = "v1.4.1"
 
 [[projects]]
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-opentracing"
   packages = ["go/otgrpc"]
-  revision = "0e7658f8ee99ee5aa683e2a032b8880091b7a055"
+  revision = "8e809c8a86450a29b90dcc9efbf062d0fe6d9746"
 
 [[projects]]
   name = "github.com/magefile/mage"
@@ -167,7 +167,7 @@
     "jlexer",
     "jwriter"
   ]
-  revision = "8b799c424f57fa123fc63a99d6383bc6e4c02578"
+  revision = "efc7eb8984d6655c26b5c9d2e65c024e5767c37c"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -185,7 +185,7 @@
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
+  revision = "f15292f7a699fcc1a38a80977f80a046874ba8ac"
 
 [[projects]]
   name = "github.com/mjibson/esc"
@@ -201,7 +201,7 @@
     "ext",
     "log"
   ]
-  revision = "6c572c00d1830223701e155de97408483dfcd14a"
+  revision = "bd9c3193394760d98b2fa6ebb2291f0cd1d06a7d"
 
 [[projects]]
   branch = "master"
@@ -222,7 +222,7 @@
     ".",
     "cacheobject"
   ]
-  revision = "fd225a25f1983d116db58553068677ba03f51fa9"
+  revision = "1555304b9b35fdd2b425bccf1a5613677705e7d0"
 
 [[projects]]
   name = "github.com/segmentio/ksuid"
@@ -243,7 +243,7 @@
     "ed25519",
     "ed25519/internal/edwards25519"
   ]
-  revision = "1f94bef427e370e425e55b172f3b5e300ef38304"
+  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
 
 [[projects]]
   branch = "master"
@@ -256,10 +256,9 @@
     "http2/hpack",
     "idna",
     "internal/timeseries",
-    "lex/httplex",
     "trace"
   ]
-  revision = "640f4622ab692b87c2f3a94265e6f579fe38263d"
+  revision = "a680a1efc54dd51c040b3b5ce4939ea3cf2ea0d1"
 
 [[projects]]
   branch = "master"
@@ -272,13 +271,13 @@
     "jws",
     "jwt"
   ]
-  revision = "cdc340f7c179dbbfa4afd43b7614e8fcadde4269"
+  revision = "ef147856a6ddbb60760db74283d2424e98c87bff"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
+  revision = "ac767d655b305d4e9612f5f6e33120b9176c4ad4"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -316,8 +315,8 @@
     "internal/urlfetch",
     "urlfetch"
   ]
-  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
-  version = "v1.0.0"
+  revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -326,7 +325,7 @@
     "googleapis/api/annotations",
     "googleapis/rpc/status"
   ]
-  revision = "86e600f69ee4704c6efbf6a2a40a5c10700e76c2"
+  revision = "02b4e95473316948020af0b7a4f0f22c73929b0e"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -341,9 +340,11 @@
     "credentials/oauth",
     "encoding",
     "encoding/proto",
-    "grpclb/grpc_lb_v1/messages",
     "grpclog",
     "internal",
+    "internal/backoff",
+    "internal/channelz",
+    "internal/grpcrand",
     "keepalive",
     "metadata",
     "naming",
@@ -356,8 +357,8 @@
     "tap",
     "transport"
   ]
-  revision = "d11072e7ca9811b1100b80ca0269ac831f06d024"
-  version = "v1.11.3"
+  revision = "168a6198bcb0ef175f7dacec0b8691fc141dc9b8"
+  version = "v1.13.0"
 
 [[projects]]
   branch = "v2"
@@ -366,7 +367,7 @@
     "bson",
     "internal/json"
   ]
-  revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
+  revision = "9856a29383ce1c59f308dd1cf0363a79b5bef6b5"
 
 [[projects]]
   name = "gopkg.in/square/go-jose.v2"
@@ -394,8 +395,8 @@
     "tokensource",
     "userauth"
   ]
-  revision = "94e0cbd0a6fd115ad929b1b68ec97f7bec75ce75"
-  version = "v1.11.1"
+  revision = "d24dea4ca25f3df6e3902f84e00346631fb98531"
+  version = "v1.12.0"
 
 [[projects]]
   name = "zvelo.io/httpsig"
@@ -403,8 +404,8 @@
     ".",
     "digest"
   ]
-  revision = "23ddc365d7bb36d6a55bd1e1a5e4b9e00e48d1fe"
-  version = "v1.1.4"
+  revision = "7495edfda6fbaafa6855956f44eafcb487fdc64a"
+  version = "v1.1.5"
 
 [[projects]]
   name = "zvelo.io/msg"
@@ -413,20 +414,21 @@
     "internal/static",
     "internal/swagger",
     "mock",
+    "msgpb",
     "status"
   ]
-  revision = "c4ebacde0386d1957fe574506639258c566d1a4d"
-  version = "v1.13.3"
+  revision = "2fe4471834e7f0e79c006ece41a0442c77aea79f"
+  version = "v1.14.1"
 
 [[projects]]
   name = "zvelo.io/zmage"
   packages = ["."]
-  revision = "437fe99f59c40d0a137087136725b8b26895c98b"
-  version = "v4.1.0"
+  revision = "0c03e1e3f259b5598de2b467309f2d852a66f427"
+  version = "v4.1.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "308666293a177ac85e22314a4502b251ccea291c642dc9155811fc21183e943a"
+  inputs-digest = "cea5fc06e2a9a8d4b8c7a60aa6df2a4e8a20e28a3eb893e1c104854c7f8b0b4d"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -6,7 +6,7 @@ import (
 
 	"github.com/fatih/color"
 
-	"zvelo.io/msg"
+	msg "zvelo.io/msg/msgpb"
 	"zvelo.io/msg/status"
 )
 
