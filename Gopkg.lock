@@ -275,12 +275,14 @@
   revision = "c66870c02cf823ceb633bcd05be3c7cda29976f4"
 
 [[projects]]
-  digest = "1:a6b0b7f7e3b3d0d3bd090b120948c4519b6407828078935868d3207b12958a00"
+  digest = "1:ccad6b485f30e431506245026e6295363ce95a2303ebe1b1338d61977fe5f3cd"
   name = "google.golang.org/grpc"
   packages = [
     ".",
     "balancer",
     "balancer/base",
+    "balancer/grpclb",
+    "balancer/grpclb/grpc_lb_v1",
     "balancer/roundrobin",
     "codes",
     "connectivity",
@@ -323,7 +325,7 @@
   version = "v2.1.8"
 
 [[projects]]
-  digest = "1:62416f00292f04dc7dc0e22ce5dc1bb2f0a7c810c34935833fb295d96fe3e7c3"
+  digest = "1:59f54544ce50b72c2ff87dac9ab2b6b85f3e37b8de5294ac61a6869638a57c0c"
   name = "zvelo.io/go-zapi"
   packages = [
     ".",
@@ -334,8 +336,8 @@
     "userauth",
   ]
   pruneopts = "NUT"
-  revision = "173d3469f3d8be8c911e4f3029534992a524ddc5"
-  version = "v1.12.1"
+  revision = "aaabe4cd6191e8f657904b7f388be9793c392739"
+  version = "v1.12.2"
 
 [[projects]]
   digest = "1:f3007df34dab5a4367e6a669f1ade9834764324133113e30b5c7a70e6f01b18d"
