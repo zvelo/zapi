@@ -5,19 +5,23 @@
 
 [[constraint]]
   name = "github.com/coreos/go-oidc"
-  branch = "v2"
+  version = "2.0.0"
 
 [[constraint]]
   name = "github.com/fatih/color"
-  version = "1.6.0"
+  version = "1.7.0"
 
 [[constraint]]
   name = "github.com/gogo/protobuf"
-  version = "1.0.0"
+  version = "1.1.1"
 
 [[constraint]]
   name = "github.com/pkg/errors"
   version = "0.8.0"
+
+[[constraint]]
+  name = "github.com/segmentio/ksuid"
+  version = "1.0.1"
 
 # 1.20.0 doesn't include https://github.com/urfave/cli/pull/687
 [[constraint]]
@@ -25,12 +29,16 @@
   branch = "master"
 
 [[constraint]]
+  name = "golang.org/x/oauth2"
+  branch = "master"
+
+[[constraint]]
   name = "google.golang.org/grpc"
-  version = "1.11.3"
+  version = "1.14.0"
 
 [[constraint]]
   name = "zvelo.io/go-zapi"
-  version = "~1.12.0"
+  version = "~1.12.1"
 
 [[constraint]]
   name = "zvelo.io/httpsig"
@@ -39,11 +47,3 @@
 [[constraint]]
   name = "zvelo.io/msg"
   version = "~1.14.1"
-
-[[override]]
-  name = "github.com/graph-gophers/graphql-go"
-  branch = "master"
-
-[[override]]
-  name = "github.com/opentracing/opentracing-go"
-  branch = "master"
