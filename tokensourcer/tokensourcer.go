@@ -24,11 +24,12 @@ type TokenSourcer interface {
 	Verifier(context.Context) (*oidc.IDTokenVerifier, error)
 }
 
-func New(appName string, debug *bool, scope ...string) TokenSourcer {
+func New(appName string, debug, insecureSkipVerify *bool, scope ...string) TokenSourcer {
 	return &data{
-		appName:       appName,
-		debug:         debug,
-		defaultScopes: scope,
+		appName:            appName,
+		debug:              debug,
+		insecureSkipVerify: insecureSkipVerify,
+		defaultScopes:      scope,
 	}
 }
 
@@ -38,8 +39,9 @@ type data struct {
 	verifier    *oidc.IDTokenVerifier
 
 	// passed to constructor
-	appName string
-	debug   *bool
+	appName            string
+	debug              *bool
+	insecureSkipVerify *bool
 
 	// from flags
 	accessToken        string
@@ -50,7 +52,6 @@ type data struct {
 	callbackAddr       string
 	noOpenBrowser      bool
 	noCacheToken       bool
-	insecureSkipVerify bool
 	scopesFlag         cli.StringSlice
 	oidcIssuer         string
 
@@ -141,11 +142,6 @@ func (d *data) Flags() []cli.Flag {
 			Usage:  "scopes to request with the token, may be repeated (default: " + strings.Join(d.defaultScopes, ", ") + ")",
 			Value:  &d.scopesFlag,
 		},
-		cli.BoolFlag{
-			Name:        "insecure-skip-verify",
-			Usage:       "accept any certificate presented by the server and any host name in that certificate. only for testing.",
-			Destination: &d.insecureSkipVerify,
-		},
 	}
 }
 
@@ -235,7 +231,7 @@ func (d *data) Verifier(ctx context.Context) (*oidc.IDTokenVerifier, error) {
 			continue
 		}
 
-		if d.insecureSkipVerify {
+		if *d.insecureSkipVerify {
 			if t, ok := http.DefaultTransport.(*http.Transport); ok {
 				prev := t.TLSClientConfig
 				t.TLSClientConfig = &tls.Config{

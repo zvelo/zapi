@@ -19,10 +19,11 @@ import (
 )
 
 type cmd struct {
-	debug, trace bool
-	timeout      time.Duration
-	clients      clients.Clients
-	query        string
+	debug, trace       bool
+	insecureSkipVerify bool
+	timeout            time.Duration
+	clients            clients.Clients
+	query              string
 }
 
 func (c *cmd) Flags() []cli.Flag {
@@ -32,6 +33,11 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_DEBUG",
 			Usage:       "enable debug logging",
 			Destination: &c.debug,
+		},
+		cli.BoolFlag{
+			Name:        "insecure-skip-verify",
+			Usage:       "accept any certificate presented by the server and any host name in that certificate. only for testing.",
+			Destination: &c.insecureSkipVerify,
 		},
 		cli.DurationFlag{
 			Name:        "timeout",
@@ -57,8 +63,8 @@ func (c *cmd) Flags() []cli.Flag {
 
 func Command(appName string) cli.Command {
 	var c cmd
-	tokenSourcer := tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
-	c.clients = clients.New(tokenSourcer, &c.debug)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.insecureSkipVerify, strings.Fields(zapi.DefaultScopes)...)
+	c.clients = clients.New(tokenSourcer, &c.debug, &c.insecureSkipVerify)
 
 	return cli.Command{
 		Name:   "graphql",

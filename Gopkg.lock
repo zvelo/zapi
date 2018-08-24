@@ -91,14 +91,6 @@
   version = "v1.4.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:7b760aa6dbe426378f54934270dde1b176fda379111da2154748f030fffe4d3f"
-  name = "github.com/grpc-ecosystem/grpc-opentracing"
-  packages = ["go/otgrpc"]
-  pruneopts = "NUT"
-  revision = "8e809c8a86450a29b90dcc9efbf062d0fe6d9746"
-
-[[projects]]
   digest = "1:08c231ec84231a7e23d67e4b58f975e1423695a32467a362ee55a803f9de8061"
   name = "github.com/mattn/go-colorable"
   packages = ["."]
@@ -325,7 +317,7 @@
   version = "v2.1.8"
 
 [[projects]]
-  digest = "1:59f54544ce50b72c2ff87dac9ab2b6b85f3e37b8de5294ac61a6869638a57c0c"
+  digest = "1:e3464def2343e449fd8ab8d460755c584032d06f43c1c948fb3ed4144d1ff3b9"
   name = "zvelo.io/go-zapi"
   packages = [
     ".",
@@ -336,8 +328,8 @@
     "userauth",
   ]
   pruneopts = "NUT"
-  revision = "aaabe4cd6191e8f657904b7f388be9793c392739"
-  version = "v1.12.2"
+  revision = "48dd70c690e76aba071d97d7195d5e3372d999a5"
+  version = "v1.13.0"
 
 [[projects]]
   digest = "1:f3007df34dab5a4367e6a669f1ade9834764324133113e30b5c7a70e6f01b18d"
@@ -351,7 +343,7 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:65cb6ce0942f88ed1dffdcfd5dd51098a6c0747f4c49a56df6ae1bb393ea078d"
+  digest = "1:cbe4f081bcb1b6ea8f673d1422313056d075e3e50ea47209b58f08e0535adf77"
   name = "zvelo.io/msg"
   packages = [
     "internal/static",
@@ -360,8 +352,8 @@
     "status",
   ]
   pruneopts = "NUT"
-  revision = "2fe4471834e7f0e79c006ece41a0442c77aea79f"
-  version = "v1.14.1"
+  revision = "58bec0212bb86961791b6017cd855844718134d7"
+  version = "v1.14.4"
 
 [solve-meta]
   analyzer-name = "dep"

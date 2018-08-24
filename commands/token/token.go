@@ -99,7 +99,8 @@ func printClaim(w io.Writer, prefix, k string, v interface{}) {
 }
 
 type cmd struct {
-	debug bool
+	debug              bool
+	insecureSkipVerify bool
 	tokensourcer.TokenSourcer
 	verifier *oidc.IDTokenVerifier
 }
@@ -112,12 +113,17 @@ func (c *cmd) Flags() []cli.Flag {
 			Usage:       "enable debug logging",
 			Destination: &c.debug,
 		},
+		cli.BoolFlag{
+			Name:        "insecure-skip-verify",
+			Usage:       "accept any certificate presented by the server and any host name in that certificate. only for testing.",
+			Destination: &c.insecureSkipVerify,
+		},
 	)
 }
 
 func Command(appName string) cli.Command {
 	var c cmd
-	c.TokenSourcer = tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
+	c.TokenSourcer = tokensourcer.New(appName, &c.debug, &c.insecureSkipVerify, strings.Fields(zapi.DefaultScopes)...)
 
 	return cli.Command{
 		Name:   "token",

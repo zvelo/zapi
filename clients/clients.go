@@ -16,10 +16,11 @@ type Clients interface {
 	GRPCv1(context.Context) (zapi.GRPCv1Client, error)
 }
 
-func New(tokenSourcer tokensourcer.TokenSourcer, debug *bool) Clients {
+func New(tokenSourcer tokensourcer.TokenSourcer, debug, insecureSkipVerify *bool) Clients {
 	return &data{
-		debug:        debug,
-		TokenSourcer: tokenSourcer,
+		debug:              debug,
+		insecureSkipVerify: insecureSkipVerify,
+		TokenSourcer:       tokenSourcer,
 	}
 }
 
@@ -30,11 +31,11 @@ type data struct {
 
 	// passed to constructor
 	tokensourcer.TokenSourcer
-	debug *bool
+	debug              *bool
+	insecureSkipVerify *bool
 
 	// from flags
 	restBaseURL, grpcTarget string
-	tlsInsecureSkipVerify   bool
 	noTLS                   bool
 }
 
@@ -55,11 +56,6 @@ func (d *data) Flags() []cli.Flag {
 			Destination: &d.grpcTarget,
 		},
 		cli.BoolFlag{
-			Name:        "tls-insecure-skip-verify",
-			Usage:       "disable certificate chain and host name verification of the connection to zveloAPI. this should only be used for testing, e.g. with mocks.",
-			Destination: &d.tlsInsecureSkipVerify,
-		},
-		cli.BoolFlag{
 			Name:        "no-tls",
 			Usage:       "disable tls",
 			Destination: &d.noTLS,
@@ -77,7 +73,7 @@ func (d *data) zapiOpts() []zapi.Option {
 		zapiOpts = append(zapiOpts, zapi.WithDebug(os.Stderr))
 	}
 
-	if d.tlsInsecureSkipVerify {
+	if *d.insecureSkipVerify {
 		zapiOpts = append(zapiOpts, zapi.WithTLSInsecureSkipVerify())
 	}
 

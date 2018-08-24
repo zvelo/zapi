@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/graph-gophers/graphql-go"
@@ -77,7 +76,6 @@ func annotateContext(req *http.Request) (context.Context, context.CancelFunc, er
 	cancel := func() {}
 
 	timeout := defaultContextTimeout
-
 	if tm := req.Header.Get(metadataGrpcTimeout); tm != "" {
 		var err error
 		timeout, err = timeoutDecode(tm)
@@ -91,7 +89,6 @@ func annotateContext(req *http.Request) (context.Context, context.CancelFunc, er
 			pairs = append(pairs, key, val)
 		}
 	}
-
 	if host := req.Header.Get(xForwardedHost); host != "" {
 		pairs = append(pairs, strings.ToLower(xForwardedHost), host)
 	} else if req.Host != "" {
@@ -111,30 +108,11 @@ func annotateContext(req *http.Request) (context.Context, context.CancelFunc, er
 	if timeout != 0 {
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 	}
-
 	if len(pairs) == 0 {
 		return ctx, cancel, nil
 	}
-
-	return metadata.NewOutgoingContext(ctx, metadata.Pairs(pairs...)), cancel, nil
-}
-
-type serverMetadataKey struct{}
-
-type serverMetadata struct {
-	sync.Mutex
-	Header metadata.MD
-}
-
-func serverMetadataFromContext(ctx context.Context) *serverMetadata {
-	if md, ok := ctx.Value(serverMetadataKey{}).(*serverMetadata); ok {
-		return md
-	}
-	return &serverMetadata{}
-}
-
-func newServerMetadataContext(ctx context.Context, md *serverMetadata) context.Context {
-	return context.WithValue(ctx, serverMetadataKey{}, md)
+	md := metadata.Pairs(pairs...)
+	return metadata.NewOutgoingContext(ctx, md), cancel, nil
 }
 
 func (h relay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -155,9 +133,6 @@ func (h relay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cancel()
 
-	var md serverMetadata
-	ctx = newServerMetadataContext(ctx, &md)
-
 	response := h.Schema.Exec(ctx, params.Query, params.OperationName, params.Variables)
 	responseJSON, err := json.Marshal(response)
 	if err != nil {
@@ -166,15 +141,5 @@ func (h relay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-
-	md.Lock()
-	defer md.Unlock()
-
-	for k, vs := range md.Header {
-		for _, v := range vs {
-			w.Header().Add(k, v)
-		}
-	}
-
 	_, _ = w.Write(responseJSON) // #nosec
 }

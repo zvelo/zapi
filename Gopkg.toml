@@ -38,7 +38,7 @@
 
 [[constraint]]
   name = "zvelo.io/go-zapi"
-  version = "~1.12.2"
+  version = "~1.13.0"
 
 [[constraint]]
   name = "zvelo.io/httpsig"
@@ -46,4 +46,4 @@
 
 [[constraint]]
   name = "zvelo.io/msg"
-  version = "~1.14.1"
+  version = "~1.14.4"

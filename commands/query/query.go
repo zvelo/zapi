@@ -45,6 +45,7 @@ type cmd struct {
 	datasets                 []msg.DatasetType
 	datasetStrings           cli.StringSlice
 	debug, trace, rest, json bool
+	insecureSkipVerify       bool
 	timeout                  time.Duration
 	clients                  clients.Clients
 	poller                   poller.Poller
@@ -181,6 +182,11 @@ func (c *cmd) Flags() []cli.Flag {
 			EnvVar:      "ZVELO_DEBUG",
 			Usage:       "enable debug logging",
 			Destination: &c.debug,
+		},
+		cli.BoolFlag{
+			Name:        "insecure-skip-verify",
+			Usage:       "accept any certificate presented by the server and any host name in that certificate. only for testing.",
+			Destination: &c.insecureSkipVerify,
 		},
 		cli.BoolFlag{
 			Name:        "trace",
@@ -323,8 +329,8 @@ func availableDS() []string {
 func Command(appName string) cli.Command {
 	c := cmd{appName: appName}
 
-	tokenSourcer := tokensourcer.New(appName, &c.debug, strings.Fields(zapi.DefaultScopes)...)
-	c.clients = clients.New(tokenSourcer, &c.debug)
+	tokenSourcer := tokensourcer.New(appName, &c.debug, &c.insecureSkipVerify, strings.Fields(zapi.DefaultScopes)...)
+	c.clients = clients.New(tokenSourcer, &c.debug, &c.insecureSkipVerify)
 	c.poller = poller.New(&c.debug, &c.rest, &c.trace, c.clients)
 
 	return cli.Command{
