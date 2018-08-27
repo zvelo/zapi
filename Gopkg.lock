@@ -317,7 +317,7 @@
   version = "v2.1.8"
 
 [[projects]]
-  digest = "1:e3464def2343e449fd8ab8d460755c584032d06f43c1c948fb3ed4144d1ff3b9"
+  digest = "1:9287e910b1652b9759a8158f0cb85f6959928de086e95497ec4d3a17f4ce4784"
   name = "zvelo.io/go-zapi"
   packages = [
     ".",
@@ -328,8 +328,8 @@
     "userauth",
   ]
   pruneopts = "NUT"
-  revision = "48dd70c690e76aba071d97d7195d5e3372d999a5"
-  version = "v1.13.0"
+  revision = "92963a1116c89a1eefc59bad63e2773c23b527e5"
+  version = "v1.14.0"
 
 [[projects]]
   digest = "1:f3007df34dab5a4367e6a669f1ade9834764324133113e30b5c7a70e6f01b18d"

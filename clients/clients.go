@@ -36,7 +36,7 @@ type data struct {
 
 	// from flags
 	restBaseURL, grpcTarget string
-	noTLS                   bool
+	noTLS, noHTTP2          bool
 }
 
 func (d *data) Flags() []cli.Flag {
@@ -60,6 +60,11 @@ func (d *data) Flags() []cli.Flag {
 			Usage:       "disable tls",
 			Destination: &d.noTLS,
 		},
+		cli.BoolFlag{
+			Name:        "no-http2",
+			Usage:       "disable http/2 for REST queries",
+			Destination: &d.noHTTP2,
+		},
 	)
 }
 
@@ -79,6 +84,10 @@ func (d *data) zapiOpts() []zapi.Option {
 
 	if d.noTLS {
 		zapiOpts = append(zapiOpts, zapi.WithoutTLS())
+	}
+
+	if d.noHTTP2 {
+		zapiOpts = append(zapiOpts, zapi.WithoutHTTP2())
 	}
 
 	return zapiOpts
