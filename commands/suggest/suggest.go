@@ -191,7 +191,7 @@ func (c *cmd) suggestREST(ctx context.Context) error {
 	var opts []zapi.CallOption
 
 	if c.trace {
-		opts = append(opts, zapi.WithHeader("x-client-trace-id", results.TracingTag().String()))
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-client-trace-id", results.TracingTag().String())
 	}
 
 	if err := c.clients.RESTv1().Suggest(ctx, &c.suggestion, opts...); err != nil {

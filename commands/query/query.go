@@ -46,6 +46,7 @@ type cmd struct {
 	datasetStrings           cli.StringSlice
 	debug, trace, rest, json bool
 	insecureSkipVerify       bool
+	skipCache                bool
 	timeout                  time.Duration
 	clients                  clients.Clients
 	poller                   poller.Poller
@@ -187,6 +188,11 @@ func (c *cmd) Flags() []cli.Flag {
 			Name:        "insecure-skip-verify",
 			Usage:       "accept any certificate presented by the server and any host name in that certificate. only for testing.",
 			Destination: &c.insecureSkipVerify,
+		},
+		cli.BoolFlag{
+			Name:        "skip-cache",
+			Usage:       "instruct zvelo-api not to check its cache for results",
+			Destination: &c.skipCache,
 		},
 		cli.BoolFlag{
 			Name:        "trace",
@@ -589,7 +595,11 @@ func (c *cmd) queryREST(ctx context.Context, queryReq *msg.QueryRequests) (*msg.
 	var opts []zapi.CallOption
 
 	if c.trace {
-		opts = append(opts, zapi.WithHeader("x-client-trace-id", results.TracingTag().String()))
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-client-trace-id", results.TracingTag().String())
+	}
+
+	if c.skipCache {
+		ctx = metadata.AppendToOutgoingContext(ctx, "zvelo-no-cache", "1")
 	}
 
 	replies, err := c.clients.RESTv1().Query(ctx, queryReq, opts...)
@@ -603,6 +613,10 @@ func (c *cmd) queryREST(ctx context.Context, queryReq *msg.QueryRequests) (*msg.
 func (c *cmd) queryGRPC(ctx context.Context, queryReq *msg.QueryRequests) (*msg.QueryReplies, error) {
 	if c.trace {
 		ctx = metadata.AppendToOutgoingContext(ctx, "x-client-trace-id", results.TracingTag().String())
+	}
+
+	if c.skipCache {
+		ctx = metadata.AppendToOutgoingContext(ctx, "zvelo-no-cache", "1")
 	}
 
 	client, err := c.clients.GRPCv1(ctx)

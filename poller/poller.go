@@ -160,7 +160,7 @@ func pollREST(ctx context.Context, client zapi.RESTv1Client, reqID string, debug
 	var opts []zapi.CallOption
 
 	if trace {
-		opts = append(opts, zapi.WithHeader("x-client-trace-id", results.TracingTag().String()))
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-client-trace-id", results.TracingTag().String())
 	}
 
 	result, err := client.Result(ctx, reqID, opts...)

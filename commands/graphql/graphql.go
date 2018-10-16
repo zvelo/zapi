@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	"google.golang.org/grpc/metadata"
 
 	zapi "zvelo.io/go-zapi"
 	"zvelo.io/zapi/clients"
@@ -109,7 +110,7 @@ func (c *cmd) action(_ *cli.Context) error {
 	var opts []zapi.CallOption
 
 	if c.trace {
-		opts = append(opts, zapi.WithHeader("x-client-trace-id", results.TracingTag().String()))
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-client-trace-id", results.TracingTag().String())
 	}
 
 	var result string
