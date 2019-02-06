@@ -3,18 +3,11 @@ version: 2
 
 jobs:
   build:
-    working_directory: /go/src/zvelo.io/zapi
-
     docker:
       - image: circleci/golang:latest
 
     steps:
       - checkout
-      - run:
-          name: Install Dependencies
-          command: |
-            go get -v github.com/golang/dep/cmd/dep
-            dep ensure
       - run:
           name: Build
           command: go build -v
