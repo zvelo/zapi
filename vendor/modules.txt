@@ -19,7 +19,7 @@ github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes/struct
-# github.com/graph-gophers/graphql-go v0.0.0-20180806175703-94da0f0031f9
+# github.com/graph-gophers/graphql-go v0.0.0-20181002230305-25d6d94fa7a7
 github.com/graph-gophers/graphql-go
 github.com/graph-gophers/graphql-go/errors
 github.com/graph-gophers/graphql-go/internal/common
@@ -33,7 +33,7 @@ github.com/graph-gophers/graphql-go/introspection
 github.com/graph-gophers/graphql-go/log
 github.com/graph-gophers/graphql-go/trace
 github.com/graph-gophers/graphql-go/internal/exec/packer
-# github.com/grpc-ecosystem/grpc-gateway v1.4.1
+# github.com/grpc-ecosystem/grpc-gateway v1.5.1
 github.com/grpc-ecosystem/grpc-gateway/runtime
 github.com/grpc-ecosystem/grpc-gateway/utilities
 github.com/grpc-ecosystem/grpc-gateway/runtime/internal
@@ -52,7 +52,7 @@ github.com/pkg/errors
 # github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35
 github.com/pquerna/cachecontrol
 github.com/pquerna/cachecontrol/cacheobject
-# github.com/segmentio/ksuid v1.0.1
+# github.com/segmentio/ksuid v1.0.2
 github.com/segmentio/ksuid
 # github.com/urfave/cli v0.0.0-20180226030253-8e01ec4cd3e2
 github.com/urfave/cli
@@ -60,7 +60,7 @@ github.com/urfave/cli
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ed25519/internal/edwards25519
-# golang.org/x/net v0.0.0-20180826012351-8a410e7b638d
+# golang.org/x/net v0.0.0-20181004194319-68fc911561ed
 golang.org/x/net/http2
 golang.org/x/net/context
 golang.org/x/net/idna
@@ -76,7 +76,7 @@ golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/google
 golang.org/x/oauth2/jwt
 golang.org/x/oauth2/jws
-# golang.org/x/sys v0.0.0-20180903190138-2b024373dcd9
+# golang.org/x/sys v0.0.0-20181004145325-8469e314837c
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.0
 golang.org/x/text/secure/bidirule
@@ -94,10 +94,10 @@ google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
-# google.golang.org/genproto v0.0.0-20180831171423-11092d34479b
+# google.golang.org/genproto v0.0.0-20181004005441-af9cb2a35e7f
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.14.0
+# google.golang.org/grpc v1.15.0
 google.golang.org/grpc/metadata
 google.golang.org/grpc/codes
 google.golang.org/grpc
@@ -131,17 +131,17 @@ google.golang.org/grpc/balancer/base
 gopkg.in/square/go-jose.v2
 gopkg.in/square/go-jose.v2/cipher
 gopkg.in/square/go-jose.v2/json
-# zvelo.io/go-zapi v1.14.1
+# zvelo.io/go-zapi v1.14.2
 zvelo.io/go-zapi
 zvelo.io/go-zapi/callback
 zvelo.io/go-zapi/clientauth
 zvelo.io/go-zapi/tokensource
 zvelo.io/go-zapi/userauth
 zvelo.io/go-zapi/internal/zvelo
-# zvelo.io/httpsig v1.1.5
+# zvelo.io/httpsig v1.1.6
 zvelo.io/httpsig
 zvelo.io/httpsig/digest
-# zvelo.io/msg v1.14.6
+# zvelo.io/msg v1.14.17
 zvelo.io/msg/mock
 zvelo.io/msg/msgpb
 zvelo.io/msg/status
